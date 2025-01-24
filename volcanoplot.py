@@ -50,18 +50,4 @@ def main():
     with st.form(key='my_form'):
         fold_change_threshold = st.number_input('Inserisci il valore soglia per il -log2FoldChange', value=1.0)
         p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=1.3)
-        submit_button = st.form_submit_button(label='Applica Filtri')
-
-    file = st.file_uploader("Carica il file Excel", type=['xlsx'])
-    if file is not None and submit_button:
-        dati = carica_dati(file)
-        if dati is not None:
-            dati_preparati = prepara_dati(dati, fold_change_threshold, p_value_threshold)
-            if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati)
-                if fig is not None:
-                    st.plotly_chart(fig)
-
-if __name__ == "__main__":
-    main()
-
+    
