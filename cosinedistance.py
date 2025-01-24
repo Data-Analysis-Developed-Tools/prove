@@ -4,7 +4,6 @@ import numpy as np
 import streamlit as st
 from scipy.spatial.distance import cosine
 
-
 # Creazione di un widget per il caricamento dei file
 uploaded_file = st.file_uploader("Carica un file CSV o Excel", type=["csv", "xlsx"])
 if uploaded_file is not None:
@@ -12,103 +11,69 @@ if uploaded_file is not None:
     if uploaded_file.name.endswith('.csv'):
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith('.xlsx'):
-        df = pd.read_excel(uploaded_file)
-    
-    # Puoi ora utilizzare il DataFrame 'df' per le tue operazioni
-    st.write(df)
-
-
-# Spiegazione del codice:
-# - `pandas` è usato per gestire i dati in formato tabellare (dataframe).
-# - `numpy` è utilizzato per operazioni numeriche.
-# - `scipy.spatial.distance.cosine` calcola la distanza di coseno tra vettori.
-
-# Widget per il caricamento dei file
-uploaded_file = st.file_uploader("Carica un file Excel o CSV", type=['csv', 'xlsx'])
-if uploaded_file is not None:
-    # Controlla l'estensione del file per decidere come caricarlo
-    if uploaded_file.name.endswith('.csv'):
-        # Caricamento di un file CSV
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith('.xlsx'):
-        # Caricamento di un file Excel
         df = pd.read_excel(uploaded_file, engine='openpyxl')
-    
+
     # Visualizzazione del DataFrame caricato
-    st.write(df)
+    st.write("Anteprima dei dati:", df)
 
+    # Separazione delle descrizioni delle osservazioni e delle variabili numeriche
+    # Supponiamo che le descrizioni siano nella colonna "A" e i dati numerici nelle colonne dalla "B" in poi.
+    # Convertiamo tutto in un formato numerico per calcoli corretti.
+    observation_labels = df.iloc[:, 0]  # Colonna A: descrizioni delle osservazioni
+    data = df.iloc[:, 1:].values  # Colonne numeriche (dalla B in poi)
 
-# Una volta caricato, leggiamo il file in un DataFrame di pandas.
-# Sostituire "data.xlsx" con il nome del file caricato.
-file_name = list(uploaded.keys())[0]
-df = pd.read_excel(file_name)
+    # Normalizzazione dei dati
+    # La distanza di coseno si basa su vettori, quindi è importante verificare che i dati siano già numerici.
+    # Se ci sono valori NaN o non numerici, li sostituiremo con 0 (o un valore più appropriato).
+    data = np.nan_to_num(data)
 
-# Esploriamo i primi dati per verificare che il caricamento sia avvenuto correttamente.
-print("Anteprima dei dati:")
-print(df.head())
+    # Funzione per calcolare la matrice delle distanze di coseno
+    def calculate_cosine_distances(data):
+        """
+        Calcola la matrice delle distanze di coseno reciproche.
+        """
+        n = data.shape[0]  # Numero di osservazioni
+        distance_matrix = np.zeros((n, n))  # Matrice quadrata vuota
 
-# Separazione delle descrizioni delle osservazioni e delle variabili numeriche
-# Supponiamo che le descrizioni siano nella colonna "A" e i dati numerici nelle colonne dalla "B" in poi.
-# Convertiamo tutto in un formato numerico per calcoli corretti.
-observation_labels = df.iloc[:, 0]  # Colonna A: descrizioni delle osservazioni
-data = df.iloc[:, 1:].values  # Colonne numeriche (dalla B in poi)
+        for i in range(n):
+            for j in range(n):
+                if i != j:  # Non calcoliamo la distanza di un vettore con se stesso
+                    distance_matrix[i, j] = cosine(data[i], data[j])
+                else:
+                    distance_matrix[i, j] = 0.0  # La distanza di un vettore con se stesso è zero
+        return distance_matrix
 
-# Normalizzazione dei dati
-# La distanza di coseno si basa su vettori, quindi è importante verificare che i dati siano già numerici.
-# Se ci sono valori NaN o non numerici, li sostituiremo con 0 (o un valore più appropriato).
-data = np.nan_to_num(data)
+    # Calcoliamo la matrice delle distanze di coseno
+    cosine_distance_matrix = calculate_cosine_distances(data)
 
-# Funzione per calcolare la matrice delle distanze di coseno
-def calculate_cosine_distances(data):
-    """
-    Calcola la matrice delle distanze di coseno reciproche.
-    """
-    n = data.shape[0]  # Numero di osservazioni
-    distance_matrix = np.zeros((n, n))  # Matrice quadrata vuota
+    # Creiamo un DataFrame per visualizzare la matrice delle distanze
+    cosine_distance_df = pd.DataFrame(
+        cosine_distance_matrix,
+        index=observation_labels,
+        columns=observation_labels
+    )
 
-    for i in range(n):
-        for j in range(n):
-            if i != j:  # Non calcoliamo la distanza di un vettore con se stesso
-                distance_matrix[i, j] = cosine(data[i], data[j])
-            else:
-                distance_matrix[i, j] = 0.0  # La distanza di un vettore con se stesso è zero
-    return distance_matrix
+    # Visualizzazione della matrice delle distanze
+    st.write("Matrice delle distanze di coseno reciproche:", cosine_distance_df)
 
-# Calcoliamo la matrice delle distanze di coseno
-cosine_distance_matrix = calculate_cosine_distances(data)
+    # Calcolo della distanza di coseno rispetto alla prima osservazione (riga 2 nel file, indice 0 nel data)
+    first_observation = data[0]  # Vettore della prima osservazione
+    distances_to_first = [cosine(first_observation, data[i]) for i in range(len(data))]
 
-# Creiamo un DataFrame per visualizzare la matrice delle distanze
-cosine_distance_df = pd.DataFrame(
-    cosine_distance_matrix,
-    index=observation_labels,
-    columns=observation_labels
-)
+    # Creiamo un DataFrame per visualizzare queste distanze
+    distances_to_first_df = pd.DataFrame({
+        "Osservazione": observation_labels,
+        "Distanza rispetto alla prima": distances_to_first
+    })
 
-print("\nMatrice delle distanze di coseno reciproche:")
-print(cosine_distance_df)
+    st.write("Distanze di coseno rispetto alla prima osservazione:", distances_to_first_df)
 
-# Calcolo della distanza di coseno rispetto alla prima osservazione (riga 2 nel file, indice 0 nel data)
-first_observation = data[0]  # Vettore della prima osservazione
-distances_to_first = [cosine(first_observation, data[i]) for i in range(len(data))]
+    # Esportiamo i risultati in un file Excel per un report completo
+    output_file = "cosine_distances_report.xlsx"
+    with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+        cosine_distance_df.to_excel(writer, sheet_name="Matrice_distanze", index=True)
+        distances_to_first_df.to_excel(writer, sheet_name="Distanze_prima", index=False)
 
-# Creiamo un DataFrame per visualizzare queste distanze
-distances_to_first_df = pd.DataFrame({
-    "Osservazione": observation_labels,
-    "Distanza rispetto alla prima": distances_to_first
-})
-
-print("\nDistanze di coseno rispetto alla prima osservazione:")
-print(distances_to_first_df)
-
-# Esportiamo i risultati in un file Excel per un report completo
-output_file = "cosine_distances_report.xlsx"
-
-with pd.ExcelWriter(output_file) as writer:
-    cosine_distance_df.to_excel(writer, sheet_name="Matrice_distanze", index=True)
-    distances_to_first_df.to_excel(writer, sheet_name="Distanze_prima", index=False)
-
-print(f"\nReport salvato nel file: {output_file}")
-
-# Forniamo un link per scaricare il file generato
-
-files.download(output_file)
+    # Forniamo un link per scaricare il file generato
+    with open(output_file, "rb") as file:
+        st.download_button(label="Scarica il report delle distanze", data=file, file_name=output_file)
