@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
+from io import BytesIO
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -42,6 +43,14 @@ def crea_volcano_plot(dati):
     else:
         return None
 
+# Funzione per salvare i dati significativi in un file Excel
+def salva_excel(dati):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        dati.to_excel(writer, index=False)
+    output.seek(0)
+    return output
+
 # Streamlit App
 def main():
     st.title("Volcano Plot Interattivo")
@@ -61,6 +70,14 @@ def main():
                 fig = crea_volcano_plot(dati_preparati)
                 if fig is not None:
                     st.plotly_chart(fig)
+                    # Funzionalità di download
+                    excel_file = salva_excel(dati_preparati)
+                    st.download_button(
+                        label="Salva come Excel",
+                        data=excel_file,
+                        file_name="dati_significativi.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
                 else:
                     st.error("Il grafico non contiene dati da visualizzare.")
             else:
