@@ -23,11 +23,20 @@ if uploaded_file is not None:
 # - `numpy` è utilizzato per operazioni numeriche.
 # - `scipy.spatial.distance.cosine` calcola la distanza di coseno tra vettori.
 
-# Caricamento del file Excel o CSV (assicurarsi di caricare il file su Colab)
-# Supponiamo che il file sia chiamato "data.xlsx" e che si trovi nella cartella principale di Colab.
-# Puoi caricare il file da Google Drive o tramite l'interfaccia di upload.
+# Widget per il caricamento dei file
+uploaded_file = st.file_uploader("Carica un file Excel o CSV", type=['csv', 'xlsx'])
+if uploaded_file is not None:
+    # Controlla l'estensione del file per decidere come caricarlo
+    if uploaded_file.name.endswith('.csv'):
+        # Caricamento di un file CSV
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.name.endswith('.xlsx'):
+        # Caricamento di un file Excel
+        df = pd.read_excel(uploaded_file, engine='openpyxl')
+    
+    # Visualizzazione del DataFrame caricato
+    st.write(df)
 
-uploaded = files.upload()
 
 # Una volta caricato, leggiamo il file in un DataFrame di pandas.
 # Sostituire "data.xlsx" con il nome del file caricato.
