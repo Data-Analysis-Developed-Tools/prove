@@ -1,6 +1,7 @@
 # Importiamo le librerie necessarie
 import pandas as pd
 import numpy as np
+import streamlit as streamlit
 from scipy.spatial.distance import cosine
 
 # Spiegazione del codice:
