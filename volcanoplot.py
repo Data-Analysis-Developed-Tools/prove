@@ -12,15 +12,19 @@ def load_data(uploaded_file):
 
 def preprocess_data(df):
     # Estrapola nomi delle classi e nomi descrittivi delle osservazioni
-    class_names = df.iloc[0, 2:].tolist()  # Nomi delle classi
+    class_names = df.iloc[0, 2:].tolist()  # Nomi delle classi dalle terze colonne in poi
     descriptive_names = df.iloc[1, 2:].tolist()  # Nomi descrittivi
     
     # Rimuove le prime due righe che contengono i metadati
     df = df.iloc[2:]
     
-    # Imposta i nomi delle colonne
+    # Imposta i nomi delle colonne, assicurandosi che il numero dei nomi corrisponda al numero di colonne
+    if len(df.columns) != 2 + len(descriptive_names):
+        raise ValueError(f"Expected {len(df.columns)} column names, but got {2 + len(descriptive_names)}")
+    
     df.columns = ['Variable Description 1', 'Variable Description 2'] + descriptive_names
     return df, class_names
+
 
 def create_volcano_plot(df, class_names):
     # Simulazione di dati per volcano plot
