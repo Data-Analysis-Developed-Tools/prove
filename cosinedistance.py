@@ -4,9 +4,6 @@ import numpy as np
 import streamlit as streamlit
 from scipy.spatial.distance import cosine
 
-Streamlit - (main, streamlit_app.py)
-SHA256:U0D94HwfxtsbiedFrcoxmjDs6deAqRcMTnrSVnl4/kk
-
 # Spiegazione del codice:
 # - `pandas` è usato per gestire i dati in formato tabellare (dataframe).
 # - `numpy` è utilizzato per operazioni numeriche.
