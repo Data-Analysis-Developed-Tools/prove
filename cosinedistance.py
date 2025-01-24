@@ -26,7 +26,7 @@ if uploaded_file is not None:
 # Caricamento del file Excel o CSV (assicurarsi di caricare il file su Colab)
 # Supponiamo che il file sia chiamato "data.xlsx" e che si trovi nella cartella principale di Colab.
 # Puoi caricare il file da Google Drive o tramite l'interfaccia di upload.
-from google.colab import files
+
 uploaded = files.upload()
 
 # Una volta caricato, leggiamo il file in un DataFrame di pandas.
@@ -101,5 +101,5 @@ with pd.ExcelWriter(output_file) as writer:
 print(f"\nReport salvato nel file: {output_file}")
 
 # Forniamo un link per scaricare il file generato
-from google.colab import files
+
 files.download(output_file)
