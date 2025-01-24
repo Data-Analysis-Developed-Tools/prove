@@ -1,8 +1,22 @@
 # Importiamo le librerie necessarie
 import pandas as pd
 import numpy as np
-import streamlit as streamlit
+import streamlit as st
 from scipy.spatial.distance import cosine
+
+
+# Creazione di un widget per il caricamento dei file
+uploaded_file = st.file_uploader("Carica un file CSV o Excel", type=["csv", "xlsx"])
+if uploaded_file is not None:
+    # Verifica il tipo di file per caricare correttamente
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.name.endswith('.xlsx'):
+        df = pd.read_excel(uploaded_file)
+    
+    # Puoi ora utilizzare il DataFrame 'df' per le tue operazioni
+    st.write(df)
+
 
 # Spiegazione del codice:
 # - `pandas` è usato per gestire i dati in formato tabellare (dataframe).
