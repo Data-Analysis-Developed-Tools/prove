@@ -5,32 +5,38 @@ from scipy.stats import ttest_ind
 import numpy as np
 from io import BytesIO
 
-# Funzione per caricare i dati
+# Funzione per caricare e trasporre i dati
 def carica_dati(file):
     try:
-        dati = pd.read_excel(file, header=[0, 1], index_col=0)
-    except ValueError:
-        st.error("Il file caricato non ha due livelli di intestazione come richiesto.")
+        dati = pd.read_excel(file, index_col=0)
+        # Trasponi il dataframe per avere le variabili come colonne
+        dati = dati.T
+    except ValueError as e:
+        st.error(f"Errore nel caricamento del file: {e}")
         return None
     return dati
 
 # Preparazione dei dati per il volcano plot
 def prepara_dati(dati, fold_change_threshold, p_value_threshold):
-    if dati is not None and isinstance(dati.columns, pd.MultiIndex):
-        classi = dati.columns.get_level_values(1).unique()
+    if dati is not None:
+        classi = dati['Class'].unique()
         risultati = []
-        for var in dati.index:
-            valori = [dati.loc[var, dati.columns.get_level_values(1) == classe].dropna().values for classe in classi]
-            if len(valori[0]) > 0 and len(valori[1]) > 0:
-                media_diff = np.log2(np.mean(valori[0]) / np.mean(valori[1]))
-                t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
-                p_val_log = -np.log10(p_val) if p_val > 0 else None
-                if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
-                    risultati.append([var, media_diff, p_val_log])
+        for var in dati.columns[1:]:  # Ignora la colonna 'Class'
+            for i, classe1 in enumerate(classi):
+                for j, classe2 in enumerate(classi):
+                    if i < j:
+                        gruppo1 = dati[dati['Class'] == classe1][var]
+                        gruppo2 = dati[dati['Class'] == classe2][var]
+                        if len(gruppo1) > 0 and len(gruppo2) > 0:
+                            media_diff = np.log2(np.mean(gruppo1) / np.mean(gruppo2))
+                            t_stat, p_val = ttest_ind(gruppo1, gruppo2, equal_var=False)
+                            p_val_log = -np.log10(p_val) if p_val > 0 else None
+                            if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
+                                risultati.append([var, media_diff, p_val_log])
         risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)'])
         return risultati_df
     else:
-        st.error("Il dataframe non contiene un indice multi-livello come atteso.")
+        st.error("Il dataframe non è valido.")
         return None
 
 # Crea il volcano plot
