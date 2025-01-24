@@ -3,9 +3,10 @@ import streamlit as st
 import plotly.express as px
 
 def load_data(uploaded_file):
-    # Carica il file senza assumere header predefiniti, gestisci dopo
-    df = pd.read_excel(uploaded_file, header=None)
+    # Supponendo che il file sia in formato .xlsx; se non sei sicuro, puoi aggiungere controlli basati sull'estensione del file.
+    df = pd.read_excel(uploaded_file, engine='openpyxl', header=None)
     return df
+
 
 def preprocess_data(df):
     # Assumiamo che le prime due righe contengano le intestazioni necessarie
