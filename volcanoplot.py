@@ -11,14 +11,21 @@ def load_data(uploaded_file):
 
 def preprocess_data(df):
     # Estraiamo le categorie e i nomi delle variabili
-    categories = df.iloc[0, 2:].tolist()
-    variable_names = df.iloc[1, 2:].tolist()
+    categories = df.iloc[0, 2:].tolist()  # Assumendo che le categorie siano dalle terza colonna in poi
+    variable_names = df.iloc[1, 2:].tolist()  # Nomi delle variabili dalla terza colonna in poi
     
     # Aggiorniamo il dataframe escludendo le prime due righe e impostiamo i nuovi nomi delle colonne
-    df = df.iloc[2:]
-    df.columns = ['Desc1', 'Desc2'] + variable_names
+    df = df.iloc[2:]  # Rimuove le righe con categorie e nomi variabili
+    
+    # Assegna nuovi nomi di colonna assicurandosi di includere tutte le colonne
+    new_column_names = ['Desc1', 'Desc2'] + variable_names  # Assumendo che le prime due colonne siano descrittive
+    if len(new_column_names) != len(df.columns):
+        raise ValueError(f"Expected {len(df.columns)} column names, but got {len(new_column_names)}")
+    
+    df.columns = new_column_names
     
     return df, categories, variable_names
+
 
 def create_volcano_plot(df, variable_names, categories):
     # Supponiamo di avere due condizioni per il confronto: condizione A e condizione B
