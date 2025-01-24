@@ -1,51 +1,38 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 import plotly.express as px
-import numpy as np
 
 def load_data(uploaded_file):
-    # Determina l'estensione del file per scegliere il motore appropriato
-    file_extension = uploaded_file.name.split('.')[-1]
-    if file_extension == 'xlsx':
-        engine = 'openpyxl'
-    else:
-        engine = None  # per file CSV o altri formati gestiti automaticamente
-
-    # Carica il file, specificando il motore se necessario
-    if engine:
-        df = pd.read_excel(uploaded_file, header=[0, 1], engine=engine)
-    else:
-        df = pd.read_csv(uploaded_file, header=[0, 1])
-    
-    df.columns = [f"{i}_{j}" if j else f"{i}" for i, j in df.columns]
+    # Carica il file senza assumere header predefiniti, gestisci dopo
+    df = pd.read_excel(uploaded_file, header=None)
     return df
 
-
 def preprocess_data(df):
-    # Estrae le descrizioni variabili e nomi delle classi
-    # Le descrizioni delle variabili si trovano nelle prime due colonne
-    variable_descriptions = df[['m/z_', 'RT [min]_']].copy()
-    df.drop(['m/z_', 'RT [min]_'], axis=1, inplace=True)
+    # Assumiamo che le prime due righe contengano le intestazioni necessarie
+    # Prima riga: nomi delle classi per le osservazioni, combinate con la seconda riga
+    headers = df.iloc[0:2].apply(lambda x: x.map(str)).agg('_'.join)
+    df.columns = headers
+    df = df.drop(index=[0, 1])
 
-    # Trasforma il dataframe per avere classi come colonne e osservazioni come righe
-    df = df.melt(id_vars=['m/z_', 'RT [min]_'], var_name='Class', value_name='Intensity')
-    
+    # Gestisci le colonne descrittive
+    variable_descriptions = df[['m/z_RT [min]', 'RT [min]_RT [min]']].copy()
+    df.drop(['m/z_RT [min]', 'RT [min]_RT [min]'], axis=1, inplace=True)
+
+    # Converti tutti i dati rimanenti in float
+    df = df.apply(pd.to_numeric, errors='coerce')
+
     return df, variable_descriptions
 
-def create_volcano_plot(df):
-    # Calcola log2 Fold Change e -log10 p-value (esempi)
-    df['log2FC'] = np.log2(df['Intensity'] / df['Intensity'].mean())  # Cambia con calcoli reali
-    df['-log10p'] = -np.log10(0.05)  # Cambia con calcoli reali
-
-    fig = px.scatter(df, x='log2FC', y='-log10p', color='Class',
-                     hover_data=['m/z_', 'RT [min]_'])
+def create_volcano_plot(df, variable_descriptions):
+    # Implementa la logica per il volcano plot, esempio:
+    fig = px.scatter(df, x='logFC', y='-log10(p-value)', hover_data=variable_descriptions.columns.tolist())
     return fig
 
-# Interfaccia utente Streamlit
+# Streamlit UI
 st.title('Visualizzazione Volcano Plot')
 uploaded_file = st.file_uploader("Carica un file CSV o Excel", type=['csv', 'xlsx'])
-if uploaded_file is not None:
+if uploaded_file:
     df = load_data(uploaded_file)
     df, variable_descriptions = preprocess_data(df)
-    fig = create_volcano_plot(df)
+    fig = create_volcano_plot(df, variable_descriptions)
     st.plotly_chart(fig)
