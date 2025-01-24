@@ -1,95 +1,17 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-from scipy.stats import ttest_ind
-import numpy as np
-from io import BytesIO
-
-# Funzione per caricare e trasporre i dati
-def carica_dati(file):
-    try:
-        dati = pd.read_excel(file, index_col=0)
-        # Trasponi il dataframe per avere le variabili come colonne
-        dati = dati.T
-    except ValueError as e:
-        st.error(f"Errore nel caricamento del file: {e}")
-        return None
-    return dati
-
-# Preparazione dei dati per il volcano plot
 def prepara_dati(dati, fold_change_threshold, p_value_threshold):
     if dati is not None:
-        classi = dati['Class'].unique()
+        classi = dati['Class'].unique()  # Accedi correttamente alla colonna 'Class'
         risultati = []
-        for var in dati.columns[1:]:  # Ignora la colonna 'Class'
-            for i, classe1 in enumerate(classi):
-                for j, classe2 in enumerate(classi):
-                    if i < j:
-                        gruppo1 = dati[dati['Class'] == classe1][var]
-                        gruppo2 = dati[dati['Class'] == classe2][var]
-                        if len(gruppo1) > 0 and len(gruppo2) > 0:
-                            media_diff = np.log2(np.mean(gruppo1) / np.mean(gruppo2))
-                            t_stat, p_val = ttest_ind(gruppo1, gruppo2, equal_var=False)
-                            p_val_log = -np.log10(p_val) if p_val > 0 else None
-                            if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
-                                risultati.append([var, media_diff, p_val_log])
-        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)'])
+        for var in dati.columns[2:]:  # Ignora le colonne 'name' e 'Class'
+            valori = [dati.loc[dati['Class'] == classe, var].dropna().values for classe in classi]
+            if len(valori[0]) > 0 and len(valori[1]) > 0:
+                media_diff = np.log2(np.mean(valori[1]) / np.mean(valori[0])) if np.mean(valori[0]) > 0 else None
+                t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
+                p_val_log = -np.log10(p_val) if p_val > 0 else None
+                if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
+                    risultati.append([dati.iloc[var]['name'], media_diff, p_val_log])
+        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2 Fold Change', '-log10(p-value)'])
         return risultati_df
     else:
-        st.error("Il dataframe non è valido.")
+        st.error("Il dataframe non è stato caricato correttamente.")
         return None
-
-# Crea il volcano plot
-def crea_volcano_plot(dati):
-    if dati is not None:
-        fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile', hover_data=['Variabile'])
-        fig.update_traces(textposition='top center')
-        fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
-        return fig
-    else:
-        return None
-
-# Funzione per salvare i dati significativi in un file Excel
-def salva_excel(dati):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        dati.to_excel(writer, index=False)
-    output.seek(0)
-    return output
-
-# Streamlit App
-def main():
-    st.title("Volcano Plot Interattivo")
-    
-    # Form per inserire il p-value e il fold change desiderati
-    with st.form(key='my_form'):
-        fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=1.0)
-        p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=1.3)
-        submit_button = st.form_submit_button(label='Applica Filtri')
-
-    file = st.file_uploader("Carica il file Excel", type=['xlsx'])
-    if file is not None and submit_button:
-        dati = carica_dati(file)
-        if dati is not None:
-            dati_preparati = prepara_dati(dati, fold_change_threshold, p_value_threshold)
-            if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati)
-                if fig is not None:
-                    st.plotly_chart(fig)
-                    # Funzionalità di download
-                    excel_file = salva_excel(dati_preparati)
-                    st.download_button(
-                        label="Salva come Excel",
-                        data=excel_file,
-                        file_name="dati_significativi.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                else:
-                    st.error("Il grafico non contiene dati da visualizzare.")
-            else:
-                st.error("Nessun dato preparato per il grafico.")
-        else:
-            st.error("Dati non caricati correttamente.")
-
-if __name__ == "__main__":
-    main()
