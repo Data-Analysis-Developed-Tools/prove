@@ -4,10 +4,22 @@ import plotly.express as px
 import numpy as np
 
 def load_data(uploaded_file):
-    # Carica il file, salta le prime due righe per le intestazioni
-    df = pd.read_excel(uploaded_file, header=[0, 1])
+    # Determina l'estensione del file per scegliere il motore appropriato
+    file_extension = uploaded_file.name.split('.')[-1]
+    if file_extension == 'xlsx':
+        engine = 'openpyxl'
+    else:
+        engine = None  # per file CSV o altri formati gestiti automaticamente
+
+    # Carica il file, specificando il motore se necessario
+    if engine:
+        df = pd.read_excel(uploaded_file, header=[0, 1], engine=engine)
+    else:
+        df = pd.read_csv(uploaded_file, header=[0, 1])
+    
     df.columns = [f"{i}_{j}" if j else f"{i}" for i, j in df.columns]
     return df
+
 
 def preprocess_data(df):
     # Estrae le descrizioni variabili e nomi delle classi
