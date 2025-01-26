@@ -14,7 +14,7 @@ def carica_dati(file):
     return dati
 
 # Preparazione dei dati per il volcano plot
-def prepara_dati(dati, fold_change_threshold, p_value_threshold):
+def prepara_dati(dati, fold_change_threshold, p_value):
     if dati is not None and isinstance(dati.columns, pd.MultiIndex):
         classi = dati.columns.get_level_values(1).unique()
         risultati = []
@@ -24,7 +24,8 @@ def prepara_dati(dati, fold_change_threshold, p_value_threshold):
                 media_diff = np.log2(np.mean(valori[0]) / np.mean(valori[1]))
                 t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
                 p_val_log = -np.log10(p_val) if p_val > 0 else None
-                if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
+                p_value_log_threshold = -np.log10(p_value) if p_value > 0 else None
+                if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_log_threshold:
                     risultati.append([var, media_diff, p_val_log])
         risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2 Fold Change', '-log10(p-value)'])
         return risultati_df
@@ -52,13 +53,13 @@ def main():
     # Form per inserire il p-value e il fold change desiderati
     with st.form(key='my_form'):
         fold_change_threshold = st.number_input('Inserisci il valore soglia per il -log2FoldChange', value=2.0)
-        p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=-np.log10(0.05))
+        p_value = st.number_input('Inserisci il valore soglia per il p-value', value=0.05, format='%f')
         submit_button = st.form_submit_button(label='Applica Filtri')
 
     if file is not None and submit_button:
         dati = carica_dati(file)
         if dati is not None:
-            dati_preparati = prepara_dati(dati, fold_change_threshold, p_value_threshold)
+            dati_preparati = prepara_dati(dati, fold_change_threshold, p_value)
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati)
                 if fig is not None:
