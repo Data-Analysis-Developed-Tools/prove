@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
+import base64
+from io import BytesIO
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -32,7 +34,7 @@ def prepara_dati(dati, fold_change_threshold, p_value_threshold):
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
         return None
 
-# Crea il volcano plot
+# Funzione per creare e salvare il grafico
 def crea_volcano_plot(dati, show_labels):
     if dati is not None:
         fig = px.scatter(dati, x='Log2 Fold Change', y='-log10(p-value)', text='Variabile' if show_labels else None, hover_data=['Variabile'])
@@ -42,10 +44,22 @@ def crea_volcano_plot(dati, show_labels):
     else:
         return None
 
+# Funzione per convertire un grafico Plotly in immagine JPG
+def convert_fig_to_image(fig):
+    img_bytes = fig.to_image(format="jpg")
+    return img_bytes
+
+# Funzione per generare un link di download per il file DataFrame
+def download_link(object_to_download, download_filename, download_link_text):
+    if isinstance(object_to_download, pd.DataFrame):
+        object_to_download = object_to_download.to_excel(BytesIO(), index=False)
+    b64 = base64.b64encode(object_to_download).decode()
+    return f'<a href="data:file/xls;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
+
 # Streamlit App
 def main():
     st.title("Volcano Plot Interattivo")
-    
+
     # Widget per il caricamento dei file
     file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 
@@ -67,6 +81,12 @@ def main():
                 fig = crea_volcano_plot(dati_preparati, show_labels)
                 if fig is not None:
                     st.plotly_chart(fig)
+                    # Pulsante per scaricare il grafico come immagine JPG
+                    img_bytes = convert_fig_to_image(fig)
+                    st.download_button(label="Scarica il grafico come JPG", data=img_bytes, file_name="volcano_plot.jpg", mime="image/jpeg")
+                    # Link per scaricare il DataFrame come Excel
+                    tmp_download_link = download_link(dati_preparati, "dati_significativi.xlsx", "Scarica i dati come Excel")
+                    st.markdown(tmp_download_link, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
