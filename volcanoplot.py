@@ -34,9 +34,9 @@ def prepara_dati(dati, fold_change_threshold, p_value):
         return None
 
 # Crea il volcano plot
-def crea_volcano_plot(dati):
+def crea_volcano_plot(dati, show_labels):
     if dati is not None:
-        fig = px.scatter(dati, x='Log2 Fold Change', y='-log10(p-value)', text='Variabile', hover_data=['Variabile'])
+        fig = px.scatter(dati, x='Log2 Fold Change', y='-log10(p-value)', text='Variabile' if show_labels else None, hover_data=['Variabile'])
         fig.update_traces(textposition='top center')
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2 Fold Change', yaxis_title='-log10(p-value)')
         return fig
@@ -56,12 +56,15 @@ def main():
         p_value = st.number_input('Inserisci il valore soglia per il p-value', value=0.05, format='%f')
         submit_button = st.form_submit_button(label='Applica Filtri')
 
+    # Opzione per mostrare o nascondere le etichette delle variabili nel grafico
+    show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
+
     if file is not None and submit_button:
         dati = carica_dati(file)
         if dati is not None:
             dati_preparati = prepara_dati(dati, fold_change_threshold, p_value)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati)
+                fig = crea_volcano_plot(dati_preparati, show_labels)
                 if fig is not None:
                     st.plotly_chart(fig)
 
