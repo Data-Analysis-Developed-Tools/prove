@@ -1,4 +1,3 @@
-import io
 import pandas as pd
 import streamlit as st
 
@@ -20,24 +19,11 @@ def main():
         # Qui va il codice per preparare i dati usando i threshold inseriti
         # ... codice per preparare i dati ...
         
-        # Assumiamo che 'dati_preparati' sia il DataFrame filtrato da scaricare
+        # Assumiamo che 'dati_preparati' sia il DataFrame filtrato da visualizzare
         dati_preparati = dati  # Questa linea è solo illustrativa
 
-        # Salvataggio di 'dati_preparati' in un file Excel in memoria
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            dati_preparati.to_excel(writer, index=False)
-            writer.save()  # Questa linea può essere rimossa
-
-        output.seek(0)
-
-        # Creazione del pulsante di download
-        st.download_button(
-            label="Scarica i dati filtrati come Excel",
-            data=output,
-            file_name="dati_filtrati.xlsx",
-            mime="application/vnd.ms-excel"
-        )
+        # Mostra i dati preparati
+        st.write(dati_preparati)
 
 if __name__ == "__main__":
     main()
