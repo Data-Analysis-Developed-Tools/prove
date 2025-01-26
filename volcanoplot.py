@@ -84,9 +84,7 @@ def main():
                     # Pulsante per scaricare il grafico come immagine JPG
                     img_bytes = convert_fig_to_image(fig)
                     st.download_button(label="Scarica il grafico come JPG", data=img_bytes, file_name="volcano_plot.jpg", mime="image/jpeg")
-                    # Link per scaricare il DataFrame come Excel
-                    tmp_download_link = download_link(dati_preparati, "dati_significativi.xlsx", "Scarica i dati come Excel")
-                    st.markdown(tmp_download_link, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
