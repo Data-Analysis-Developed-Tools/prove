@@ -51,8 +51,8 @@ def main():
 
     # Form per inserire il p-value e il fold change desiderati
     with st.form(key='my_form'):
-        fold_change_threshold = st.number_input('Inserisci il valore soglia per il -log2FoldChange', value=1.0)
-        p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=1.3)
+        fold_change_threshold = st.number_input('Inserisci il valore soglia per il -log2FoldChange', value=2.0)
+        p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=-np.log10(0.05))
         submit_button = st.form_submit_button(label='Applica Filtri')
 
     if file is not None and submit_button:
