@@ -4,7 +4,6 @@ import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
 from io import BytesIO
-import base64
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -44,10 +43,17 @@ def crea_volcano_plot(dati, show_labels):
     else:
         return None
 
-# Funzione per convertire il grafico in un'immagine JPEG
-def convert_fig_to_image(fig):
-    img_bytes = fig.to_image(format="jpeg")
-    return img_bytes
+# Funzione per scaricare i dati come Excel
+def get_table_download_link(df):
+    """Generates a download link allowing the data in a given panda dataframe to be downloaded as an excel file"""
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False)
+        writer.save()
+    processed_data = output.getvalue()
+    b64 = base64.b64encode(processed_data).decode()
+    href = f'<a href="data:application/octet-stream;base64,{b64}" download="filtered_data.xlsx">Download Excel file</a>'
+    return href
 
 # Streamlit App
 def main():
@@ -70,14 +76,7 @@ def main():
                 fig = crea_volcano_plot(dati_preparati, show_labels)
                 if fig is not None:
                     st.plotly_chart(fig)
-                    # Convertire il grafico in un'immagine e offrire un pulsante di download
-                    img_bytes = convert_fig_to_image(fig)
-                    st.download_button(
-                        label="Scarica il grafico come JPG",
-                        data=img_bytes,
-                        file_name="volcano_plot.jpg",
-                        mime="image/jpeg"
-                    )
+                    st.markdown(get_table_download_link(dati_preparati), unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
