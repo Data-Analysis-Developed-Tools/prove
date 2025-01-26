@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
+from io import BytesIO
+import base64
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -42,6 +44,11 @@ def crea_volcano_plot(dati, show_labels):
     else:
         return None
 
+# Funzione per convertire il grafico in un'immagine JPEG
+def convert_fig_to_image(fig):
+    img_bytes = fig.to_image(format="jpeg")
+    return img_bytes
+
 # Streamlit App
 def main():
     st.title("Volcano Plot Interattivo")
@@ -63,8 +70,14 @@ def main():
                 fig = crea_volcano_plot(dati_preparati, show_labels)
                 if fig is not None:
                     st.plotly_chart(fig)
-                st.write("Variabili che superano i criteri di selezione:")
-                st.dataframe(dati_preparati[['Variabile', 'Log2 Fold Change', 'p-value']])  # Mostrando solo i dati rilevanti
+                    # Convertire il grafico in un'immagine e offrire un pulsante di download
+                    img_bytes = convert_fig_to_image(fig)
+                    st.download_button(
+                        label="Scarica il grafico come JPG",
+                        data=img_bytes,
+                        file_name="volcano_plot.jpg",
+                        mime="image/jpeg"
+                    )
 
 if __name__ == "__main__":
     main()
