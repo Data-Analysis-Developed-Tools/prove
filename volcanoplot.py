@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
+import base64
 from io import BytesIO
 
 # Funzione per caricare i dati
@@ -68,13 +69,8 @@ def main():
                 fig = crea_volcano_plot(dati_preparati, show_labels)
                 if fig is not None:
                     st.plotly_chart(fig)
-                    # Convert DataFrame to Excel in memory and provide download
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        dati_preparati.to_excel(writer, sheet_name='Filtered Data', index=False)
-                        writer.save()
-                    output.seek(0)
-                    st.download_button(label="Download Excel", data=output.getvalue(), file_name="filtered_data.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                st.write("Variabili che superano i criteri di selezione:")
+                st.dataframe(dati_preparati)
 
 if __name__ == "__main__":
     main()
