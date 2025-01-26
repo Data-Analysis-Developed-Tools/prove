@@ -23,9 +23,10 @@ def prepara_dati(dati, fold_change_threshold, p_value_threshold):
             if len(valori[0]) > 0 and len(valori[1]) > 0:
                 media_diff = np.log2(np.mean(valori[0]) / np.mean(valori[1]))
                 t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
+                p_val_log = -np.log10(p_val) if p_val > 0 else None
                 if abs(media_diff) >= fold_change_threshold and p_val <= p_value_threshold:
-                    risultati.append([var, media_diff, p_val])
-        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2 Fold Change', 'p-value'])
+                    risultati.append([var, media_diff, p_val_log, p_val])
+        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2 Fold Change', '-log10(p-value)', 'p-value'])
         return risultati_df
     else:
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
@@ -48,7 +49,7 @@ def main():
     file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 
     with st.form(key='my_form'):
-        fold_change_threshold = st.number_input('Inserisci il valore soglia per il -log2FoldChange', value=2.0)
+        fold_change_threshold = st.number_input('Inserisci il valore soglia per il -log2Fold Change', value=2.0)
         p_value_threshold = st.number_input('Inserisci il valore soglia per il p-value', value=0.05, format='%f')
         submit_button = st.form_submit_button(label='Applica Filtri')
 
@@ -61,7 +62,7 @@ def main():
                 if fig is not None:
                     st.plotly_chart(fig)
                 st.write("Variabili che superano i criteri di selezione:")
-                st.dataframe(dati_preparati)
+                st.dataframe(dati_preparati[['Variabile', 'Log2 Fold Change', 'p-value']])  # Mostrando solo i dati rilevanti
 
 if __name__ == "__main__":
     main()
