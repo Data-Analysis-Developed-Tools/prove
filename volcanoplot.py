@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-import io
+from io import BytesIO
 
 # Streamlit App
 def main():
@@ -26,13 +26,18 @@ def main():
         # Mostra i dati preparati
         st.write(dati_preparati)
 
-        # Convertire DataFrame in CSV e creare un pulsante di download automatico
-        csv = dati_preparati.to_csv(index=False)  # Conversione DataFrame in CSV senza indice
+        # Conversione DataFrame in Excel e creazione di un pulsante di download automatico
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            dati_preparati.to_excel(writer, index=False)
+            writer.save()
+        output.seek(0)
+
         st.download_button(
-            label="Scarica i dati filtrati",
-            data=csv,
-            file_name='dati_filtrati.csv',
-            mime='text/csv',
+            label="Scarica i dati filtrati come Excel",
+            data=output,
+            file_name='dati_filtrati.xlsx',
+            mime='application/vnd.ms-excel'
         )
 
 if __name__ == "__main__":
