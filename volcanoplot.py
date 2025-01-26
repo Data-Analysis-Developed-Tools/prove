@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import io
 
 # Streamlit App
 def main():
@@ -24,6 +25,16 @@ def main():
 
         # Mostra i dati preparati
         st.write(dati_preparati)
+
+        # Convertire DataFrame in Excel e creare un pulsante di download
+        towrite = io.BytesIO()
+        with pd.ExcelWriter(towrite, engine='xlsxwriter') as writer:
+            dati_preparati.to_excel(writer, sheet_name='Sheet1')
+            writer.save()
+        towrite.seek(0)  # riposizionamento al principio del file dopo il salvataggio
+        b64 = base64.b64encode(towrite.read()).decode()  # codifica in base64
+        href = f'<a href="data:application/octet-stream;base64,{b64}" download="dati_filtrati.xlsx">Scarica i dati filtrati</a>'
+        st.markdown(href, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
