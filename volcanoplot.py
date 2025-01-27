@@ -7,9 +7,8 @@ import os
 
 def create_download_link(df, filename):
     output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False)
-    writer.save()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False)
     processed_data = output.getvalue()
     b64 = base64.b64encode(processed_data).decode()
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="{filename}">Download {filename}</a>'
@@ -22,7 +21,6 @@ def main():
         st.write("Dati caricati con successo!")
 
         # Simulazione dei dati di pvalue e log2FoldChange per dimostrazione
-        # Nella pratica, questi dati verrebbero generati dall'algoritmo
         num_rows = len(data)
         simulated_log2FoldChange = np.random.normal(0, 1, num_rows)
         simulated_pvalues = np.random.uniform(0, 0.05, num_rows)
