@@ -36,7 +36,7 @@ def main():
 
             # Creazione del volcano plot
             fig, ax = plt.subplots()
-            ax.scatter(simulated_log2FoldChange, -np.log10(simulated_pvalues), c='blue', edgecolors='w')
+            scatter = ax.scatter(simulated_log2FoldChange, -np.log10(simulated_pvalues), c='blue', edgecolors='w')
 
             if show_labels:
                 for i, label in enumerate(data.iloc[:, 0]):
