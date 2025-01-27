@@ -1,45 +1,57 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
+import matplotlib.pyplot as plt
 from io import BytesIO
+import base64
 
 def to_excel(df):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Filtered Data')
-    output.seek(0)
-    return output.getvalue()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    writer.close()
+    processed_data = output.getvalue()
+    return processed_data
+
+def download_link(object_to_download, download_filename, download_link_text):
+    if isinstance(object_to_download, pd.DataFrame):
+        object_to_download = to_excel(object_to_download)  # Convert DataFrame to Excel
+    b64 = base64.b64encode(object_to_download).decode()
+    return f'<a href="data:file/xlsx;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
 
 def main():
-    st.title("Volcano Plot Application")
-
-    # File upload section
-    uploaded_file = st.file_uploader("Upload your input Excel file", type=["xlsx"])
+    st.title('Volcano Plot App')
+    uploaded_file = st.file_uploader("Choose a file")
     if uploaded_file is not None:
         data = pd.read_excel(uploaded_file)
+        # Assuming the data file has columns named appropriately
+        if "p-value" not in data.columns or "Log2FoldChange" not in data.columns:
+            st.error("File must contain 'p-value' and 'Log2FoldChange' columns")
+            return
+        
+        st.write("Here's the first few rows of your data:", data.head())
 
-        # Generate data for the plot if the uploaded file is processed
-        data['Log2FoldChange'] = np.log2(data['Values'] / data['Control'])
-        data['p-value'] = np.random.rand(len(data))
+        # Simulating additional data columns if necessary, these lines are placeholders
+        # for your actual data processing steps
         data['-Log10(p-value)'] = -np.log10(data['p-value'])
 
-        # User input for thresholds
-        threshold_fold_change = st.sidebar.slider("Log2 Fold Change Threshold", min_value=float(data['Log2FoldChange'].min()), max_value=float(data['Log2FoldChange'].max()), value=1.0)
-        threshold_pvalue = st.sidebar.slider("-Log10(p-value) Threshold", min_value=float(data['-Log10(p-value)'].min()), max_value=float(data['-Log10(p-value)'].max()), value=1.5)
+        # Filtering data based on user input for demonstration
+        threshold_pvalue = st.slider('P-value Cutoff', 0.0, 1.0, 0.05)
+        threshold_fold_change = st.slider('Log2 Fold Change Cutoff', 0.0, 10.0, 1.0)
+        filtered_data = data[(data['p-value'] <= threshold_pvalue) & (abs(data['Log2FoldChange']) >= threshold_fold_change)]
 
-        # Filter data based on thresholds
-        filtered_data = data[(data['Log2FoldChange'].abs() > threshold_fold_change) & (data['-Log10(p-value)'] > threshold_pvalue)]
+        # Plotting the volcano plot
+        fig, ax = plt.subplots()
+        ax.scatter(filtered_data['Log2FoldChange'], filtered_data['-Log10(p-value)'])
+        ax.axhline(y=-np.log10(threshold_pvalue), color='r', linestyle='--')
+        ax.axvline(x=threshold_fold_change, color='b', linestyle='--')
+        ax.set_xlabel('Log2 Fold Change')
+        ax.set_ylabel('-Log10 P-value')
+        st.pyplot(fig)
 
-        # Plotting
-        fig = px.scatter(filtered_data, x='Log2FoldChange', y='-Log10(p-value)', hover_data=['Log2FoldChange', 'p-value'])
-        fig.add_hline(y=threshold_pvalue, line_dash="dot", annotation_text="p-value threshold")
-        fig.add_vline(x=0, line_dash="dot", annotation_text="Fold Change = 0")
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Download button for the filtered data
-        df_xlsx = to_excel(filtered_data)
-        st.download_button(label="Download Excel file", data=df_xlsx, file_name="filtered_data.xlsx", mime="application/vnd.ms-excel")
+        # Download link for filtered data
+        df_xlsx = to_excel(filtered_data)  # Convert DataFrame to Excel
+        st.markdown(download_link(df_xlsx, 'filtered_data.xlsx', 'Download filtered data as Excel'), unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
