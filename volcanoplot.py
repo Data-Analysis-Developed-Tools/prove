@@ -42,21 +42,16 @@ def main():
             st.plotly_chart(fig, use_container_width=True)
 
             # Funzione per generare il download link per Excel
+        
+
             def to_excel(df):
-                output = BytesIO()
-                writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                df.to_excel(writer, index=False, sheet_name='Filtered Data')
-                writer.save()
-                processed_data = output.getvalue()
-                return processed_data
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Filtered Data')
+            processed_data = output.getvalue()
+            return processed_data
 
-            df_xlsx = to_excel(filtered_data)
-            st.download_button(label='📥 Download Current Data as Excel',
-                               data=df_xlsx,
-                               file_name='filtered_data.xlsx',
-                               mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-    else:
+         else:
         st.info("Carica un file per procedere.")
 
 if __name__ == "__main__":
