@@ -18,41 +18,41 @@ def download_link(object_to_download, download_filename, download_link_text):
     return None
 
 def main():
-    # Simuliamo dei dati per il volcano plot
-    data = pd.DataFrame({
-        'log2FoldChange': np.random.normal(0, 1, 100),
-        'pvalue': np.random.uniform(0, 0.05, 100)
-    })
-    data['-log10(pvalue)'] = -np.log10(data['pvalue'])
+    # Importa il file sorgente .xlsx
+    uploaded_file = st.file_uploader("Carica il file Excel", type="xlsx")
+    if uploaded_file is not None:
+        data = pd.read_excel(uploaded_file)
+        st.write("Dati caricati con successo!")
 
-    # Aggiungiamo una colonna per le etichette
-    data['label'] = ['gene' + str(i) for i in range(100)]
+        # Configurazione dei parametri tramite form
+        with st.form(key='my_form'):
+            threshold_pvalue = st.number_input('Inserisci il valore soglia per p-value', min_value=0.0, max_value=1.0, value=0.05)
+            threshold_fold_change = st.number_input('Inserisci il valore soglia per fold change', value=1.0)
+            submit_button = st.form_submit_button(label='Genera Volcano Plot')
 
-    # Opzione per mostrare/nascondere le etichette
-    show_labels = st.checkbox("Mostra etichette")
+        if submit_button:
+            # Filtra i dati in base alle soglie impostate
+            filtered_data = data[(data['pvalue'] <= threshold_pvalue) & (abs(data['log2FoldChange']) >= threshold_fold_change)]
 
-    # Creazione del volcano plot
-    fig, ax = plt.subplots()
-    scatter = ax.scatter(data['log2FoldChange'], data['-log10(pvalue)'], c='blue', edgecolors='w')
+            # Creazione del volcano plot
+            fig, ax = plt.subplots()
+            ax.scatter(filtered_data['log2FoldChange'], -np.log10(filtered_data['pvalue']), c='blue', edgecolors='w')
+            ax.set_xlabel('Log2 Fold Change')
+            ax.set_ylabel('-Log10(p-value)')
+            ax.set_title('Volcano Plot')
+            st.pyplot(fig)
 
-    if show_labels:
-        for i in range(data.shape[0]):
-            ax.text(data.iloc[i]['log2FoldChange'], data.iloc[i]['-log10(pvalue)'], data.iloc[i]['label'], fontsize=9)
-
-    ax.set_xlabel('Log2 Fold Change')
-    ax.set_ylabel('-Log10(p-value)')
-    ax.set_title('Volcano Plot')
-    st.pyplot(fig)
-
-    # Link per scaricare il DataFrame come Excel
-    if not data.empty:
-        tmp_download_link = download_link(data, "dati_significativi.xlsx", "Scarica i dati come Excel")
-        if tmp_download_link:
-            st.markdown(tmp_download_link, unsafe_allow_html=True)
-        else:
-            st.error("Errore nella creazione del link di download.")
+            # Link per scaricare il DataFrame come Excel
+            if not filtered_data.empty:
+                tmp_download_link = download_link(filtered_data, "dati_significativi.xlsx", "Scarica i dati come Excel")
+                if tmp_download_link:
+                    st.markdown(tmp_download_link, unsafe_allow_html=True)
+                else:
+                    st.error("Errore nella creazione del link di download.")
+            else:
+                st.error("Nessun dato significativo per il download.")
     else:
-        st.error("Nessun dato disponibile per il download.")
+        st.info("Carica un file per procedere.")
 
 if __name__ == "__main__":
     main()
