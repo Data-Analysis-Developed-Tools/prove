@@ -25,12 +25,13 @@ def main():
     if uploaded_file is not None:
         data = pd.read_excel(uploaded_file)
         
-        # Check if data has necessary columns to generate 'p-value' and 'Log2FoldChange'
-        if 'Sample' in data.columns and 'Control' in data.columns:
-            # Simulate 'Log2FoldChange' and 'p-value' for demonstration purposes
-            data['Log2FoldChange'] = np.log2(data['Sample'] / data['Control'])
-            data['p-value'] = np.random.uniform(0, 1, data.shape[0])
-            data['-Log10(p-value)'] = -np.log10(data['p-value'])
+        # Assumiamo che il tuo file abbia le colonne necessarie per il calcolo che verranno specificate in seguito
+        # Qui potresti aver bisogno di adattare il codice per il tuo uso specifico
+        
+        # Generazione simulata di 'Log2FoldChange' e 'p-value'
+        data['Log2FoldChange'] = np.log2(data.iloc[:, 1] / data.iloc[:, 2])  # Modifica secondo le tue colonne
+        data['p-value'] = np.random.uniform(0.01, 1, data.shape[0])
+        data['-Log10(p-value)'] = -np.log10(data['p-value'])
         
         st.write("Here's the first few rows of your data:", data.head())
 
@@ -41,9 +42,9 @@ def main():
 
         # Plotting the volcano plot
         fig, ax = plt.subplots()
-        ax.scatter(filtered_data['Log2FoldChange'], filtered_data['-Log10(p-value)'])
-        ax.axhline(y=-np.log10(threshold_pvalue), color='r', linestyle='--')
-        ax.axvline(x=threshold_fold_change, color='b', linestyle='--')
+        ax.scatter(filtered_data['Log2FoldChange'], filtered_data['-Log10(p-value)'], alpha=0.5)
+        ax.axhline(y=-np.log10(threshold_pvalue), color='red', linestyle='--')
+        ax.axvline(x=threshold_fold_change, color='blue', linestyle='--')
         ax.set_xlabel('Log2 Fold Change')
         ax.set_ylabel('-Log10 P-value')
         st.pyplot(fig)
