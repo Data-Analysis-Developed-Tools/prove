@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 from io import BytesIO
 import base64
@@ -34,9 +35,9 @@ def main():
             simulated_log2FoldChange = np.random.normal(0, 1, num_rows)
             simulated_pvalues = np.random.uniform(0, 0.05, num_rows)
 
-            # Creazione del volcano plot
+            # Creazione del volcano plot usando Seaborn
             fig, ax = plt.subplots()
-            scatter = ax.scatter(simulated_log2FoldChange, -np.log10(simulated_pvalues), c='blue', edgecolors='w')
+            sns.scatterplot(x=simulated_log2FoldChange, y=-np.log10(simulated_pvalues), hue=np.log10(simulated_pvalues) < -np.log10(threshold_pvalue), palette="viridis", legend=None, ax=ax)
 
             if show_labels:
                 for i, label in enumerate(data.iloc[:, 0]):
