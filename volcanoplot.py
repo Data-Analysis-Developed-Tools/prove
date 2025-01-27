@@ -19,19 +19,20 @@ def main():
     uploaded_file = st.file_uploader("Carica il file Excel", type="xlsx")
     if uploaded_file is not None:
         data = pd.read_excel(uploaded_file)
-        # Verifica che le colonne necessarie siano presenti nel DataFrame
-        required_columns = ['pvalue', 'log2FoldChange']
-        if not all(column in data.columns for column in required_columns):
-            st.error(f"Errore: il file deve contenere le seguenti colonne: {', '.join(required_columns)}")
-            return
         st.write("Dati caricati con successo!")
+
+        # Simulazione dei dati di pvalue e log2FoldChange per dimostrazione
+        # Nella pratica, questi dati verrebbero generati dall'algoritmo
+        num_rows = len(data)
+        simulated_log2FoldChange = np.random.normal(0, 1, num_rows)
+        simulated_pvalues = np.random.uniform(0, 0.05, num_rows)
 
         # Preparazione dei dati per il nuovo file Excel
         output_df = pd.DataFrame({
             'Etichette': data.iloc[:, 0],  # Presumendo che la prima colonna contenga le etichette
-            'log2FoldChange': data['log2FoldChange'],
-            '-log10(pvalue)': -np.log10(data['pvalue']),
-            'p-value': data['pvalue']
+            'log2FoldChange': simulated_log2FoldChange,
+            '-log10(pvalue)': -np.log10(simulated_pvalues),
+            'p-value': simulated_pvalues
         })
 
         # Creazione del link di download per il nuovo file Excel
