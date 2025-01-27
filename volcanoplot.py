@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
 import numpy as np
 from io import BytesIO
 import base64
@@ -30,33 +29,23 @@ def main():
             submit_button = st.form_submit_button(label='Genera Volcano Plot')
 
         if submit_button:
-            # Simulazione dei dati di pvalue e log2FoldChange per dimostrazione
             num_rows = len(data)
             simulated_log2FoldChange = np.random.normal(0, 1, num_rows)
             simulated_pvalues = np.random.uniform(0, 0.05, num_rows)
 
-            # Creazione del volcano plot usando Seaborn
-            fig, ax = plt.subplots()
-            sns.scatterplot(x=simulated_log2FoldChange, y=-np.log10(simulated_pvalues), hue=np.log10(simulated_pvalues) < -np.log10(threshold_pvalue), palette="viridis", legend=None, ax=ax)
-
-            if show_labels:
-                for i, label in enumerate(data.iloc[:, 0]):
-                    ax.text(simulated_log2FoldChange[i], -np.log10(simulated_pvalues[i]), label, fontsize=9)
-
-            ax.set_xlabel('Log2 Fold Change')
-            ax.set_ylabel('-Log10(p-value)')
-            ax.set_title('Volcano Plot')
-            st.pyplot(fig)
-
-            # Preparazione dei dati per il nuovo file Excel
-            output_df = pd.DataFrame({
-                'Etichette': data.iloc[:, 0],  # Presumendo che la prima colonna contenga le etichette
-                'log2FoldChange': simulated_log2FoldChange,
-                '-log10(pvalue)': -np.log10(simulated_pvalues),
-                'p-value': simulated_pvalues
-            })
+            # Creazione del volcano plot con Plotly
+            data['Log2FoldChange'] = simulated_log2FoldChange
+            data['-Log10(p-value)'] = -np.log10(simulated_pvalues)
+            fig = px.scatter(data, x='Log2FoldChange', y='-Log10(p-value)', 
+                             hover_data=[data.columns[0], 'p-value', 'Log2FoldChange'],
+                             size_max=10)
+            fig.update_traces(marker=dict(size=6))  # Ridurre la dimensione dei marker
+            fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="red")  # Linea verticale
+            fig.update_layout(showlegend=False, hovermode='closest')
+            st.plotly_chart(fig, use_container_width=True)
 
             # Creazione del link di download per il nuovo file Excel
+            output_df = data[['Etichette', 'Log2FoldChange', '-Log10(p-value)', 'p-value']]
             file_name = os.path.splitext(uploaded_file.name)[0] + "_values_from_volcano_plot.xlsx"
             link = create_download_link(output_df, file_name)
             st.markdown(link, unsafe_allow_html=True)
