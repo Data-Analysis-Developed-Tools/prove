@@ -6,4 +6,4 @@ openpyxl
 plotly
 kaleido
 xlsxwriter
-matplotlib
+seaborn
