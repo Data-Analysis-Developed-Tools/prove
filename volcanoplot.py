@@ -24,16 +24,15 @@ def main():
     uploaded_file = st.file_uploader("Choose a file")
     if uploaded_file is not None:
         data = pd.read_excel(uploaded_file)
-        # Assuming the data file has columns named appropriately
-        if "p-value" not in data.columns or "Log2FoldChange" not in data.columns:
-            st.error("File must contain 'p-value' and 'Log2FoldChange' columns")
-            return
+        
+        # Check if data has necessary columns to generate 'p-value' and 'Log2FoldChange'
+        if 'Sample' in data.columns and 'Control' in data.columns:
+            # Simulate 'Log2FoldChange' and 'p-value' for demonstration purposes
+            data['Log2FoldChange'] = np.log2(data['Sample'] / data['Control'])
+            data['p-value'] = np.random.uniform(0, 1, data.shape[0])
+            data['-Log10(p-value)'] = -np.log10(data['p-value'])
         
         st.write("Here's the first few rows of your data:", data.head())
-
-        # Simulating additional data columns if necessary, these lines are placeholders
-        # for your actual data processing steps
-        data['-Log10(p-value)'] = -np.log10(data['p-value'])
 
         # Filtering data based on user input for demonstration
         threshold_pvalue = st.slider('P-value Cutoff', 0.0, 1.0, 0.05)
