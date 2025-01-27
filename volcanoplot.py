@@ -29,31 +29,24 @@ def main():
             show_labels = st.checkbox("Mostra etichette")
             submit_button = st.form_submit_button(label='Genera Volcano Plot')
 
-# Funzione per creare e salvare il grafico
-def crea_volcano_plot(dati, show_labels):
-    if dati is not None:
-        fig = px.scatter(dati, x='Log2 Fold Change', y='-log10(p-value)', text='Variabile' if show_labels else None, hover_data=['Variabile'])
-        fig.update_traces(textposition='top center')
-        fig.update_layout(title='Volcano Plot', xaxis_title='Log2 Fold Change', yaxis_title='-log10(p-value)')
-        return fig
-    else:
-        return None
+        if submit_button:
+            # Simulazione dei dati di pvalue e log2FoldChange per dimostrazione
+            num_rows = len(data)
+            simulated_log2FoldChange = np.random.normal(0, 1, num_rows)
+            simulated_pvalues = np.random.uniform(0, 0.05, num_rows)
 
-# Funzione per convertire un grafico Plotly in immagine JPG
-def convert_fig_to_image(fig):
-    img_bytes = fig.to_image(format="jpg")
-    return img_bytes
+            # Creazione del volcano plot usando Seaborn
+            fig, ax = plt.subplots()
+            sns.scatterplot(x=simulated_log2FoldChange, y=-np.log10(simulated_pvalues), hue=np.log10(simulated_pvalues) < -np.log10(threshold_pvalue), palette="viridis", legend=None, ax=ax)
 
-# Funzione per generare un link di download per il file DataFrame
-def download_link(object_to_download, download_filename, download_link_text):
-    if isinstance(object_to_download, pd.DataFrame):
-        object_to_download = object_to_download.to_excel(BytesIO(), index=False)
-    b64 = base64.b64encode(object_to_download).decode()
-    return f'<a href="data:file/xls;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
+            if show_labels:
+                for i, label in enumerate(data.iloc[:, 0]):
+                    ax.text(simulated_log2FoldChange[i], -np.log10(simulated_pvalues[i]), label, fontsize=9)
 
-# Streamlit App
-def main():
-    st.title("Volcano Plot Interattivo")
+            ax.set_xlabel('Log2 Fold Change')
+            ax.set_ylabel('-Log10(p-value)')
+            ax.set_title('Volcano Plot')
+            st.pyplot(fig)
 
             # Preparazione dei dati per il nuovo file Excel
             output_df = pd.DataFrame({
