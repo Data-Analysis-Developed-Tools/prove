@@ -1,58 +1,45 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import numpy as np
+import plotly.express as px
 from io import BytesIO
-import base64
+
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Filtered Data')
+    output.seek(0)
+    return output.getvalue()
 
 def main():
-    uploaded_file = st.file_uploader("Carica il file Excel", type="xlsx")
+    st.title("Volcano Plot Application")
+
+    # File upload section
+    uploaded_file = st.file_uploader("Upload your input Excel file", type=["xlsx"])
     if uploaded_file is not None:
         data = pd.read_excel(uploaded_file)
-        st.write("Dati caricati con successo!")
 
-        with st.form(key='my_form'):
-            threshold_pvalue = st.number_input('Inserisci il valore soglia per p-value', min_value=0.0, max_value=1.0, value=0.05)
-            threshold_fold_change = st.number_input('Inserisci il valore soglia per fold change', value=1.0)
-            submit_button = st.form_submit_button(label='Genera Volcano Plot e scarica i dati')
+        # Generate data for the plot if the uploaded file is processed
+        data['Log2FoldChange'] = np.log2(data['Values'] / data['Control'])
+        data['p-value'] = np.random.rand(len(data))
+        data['-Log10(p-value)'] = -np.log10(data['p-value'])
 
-        if submit_button:
-            # Simulazione dei dati per il volcano plot
-            data['log2FoldChange'] = np.random.normal(0, 1, len(data))
-            data['pvalue'] = np.random.uniform(0.001, 1, len(data))
-            data['-log10(pvalue)'] = -np.log10(data['pvalue'])
+        # User input for thresholds
+        threshold_fold_change = st.sidebar.slider("Log2 Fold Change Threshold", min_value=float(data['Log2FoldChange'].min()), max_value=float(data['Log2FoldChange'].max()), value=1.0)
+        threshold_pvalue = st.sidebar.slider("-Log10(p-value) Threshold", min_value=float(data['-Log10(p-value)'].min()), max_value=float(data['-Log10(p-value)'].max()), value=1.5)
 
-            # Filtra i dati in base alle soglie impostate
-            filtered_data = data[(data['pvalue'] <= threshold_pvalue) & (abs(data['log2FoldChange']) >= threshold_fold_change)]
+        # Filter data based on thresholds
+        filtered_data = data[(data['Log2FoldChange'].abs() > threshold_fold_change) & (data['-Log10(p-value)'] > threshold_pvalue)]
 
-            # Creazione del volcano plot
-            fig = px.scatter(
-                data_frame=filtered_data,
-                x='log2FoldChange',
-                y='-log10(pvalue)',
-                hover_data=[data.columns[0], 'pvalue', 'log2FoldChange'],
-                title="Volcano Plot",
-                labels={
-                    "-log10(pvalue)": "-log10(p-value)",
-                    "log2FoldChange": "Log2 Fold Change"
-                }
-            )
-            fig.add_vline(x=0, line_dash="dash", line_color="red")
-            fig.update_traces(marker=dict(size=5))  # Ridurre la dimensione dei marker a metà
-            st.plotly_chart(fig, use_container_width=True)
+        # Plotting
+        fig = px.scatter(filtered_data, x='Log2FoldChange', y='-Log10(p-value)', hover_data=['Log2FoldChange', 'p-value'])
+        fig.add_hline(y=threshold_pvalue, line_dash="dot", annotation_text="p-value threshold")
+        fig.add_vline(x=0, line_dash="dot", annotation_text="Fold Change = 0")
+        st.plotly_chart(fig, use_container_width=True)
 
-            # Funzione per generare il download link per Excel
-        
-
-            def to_excel(df):
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False, sheet_name='Filtered Data')
-            processed_data = output.getvalue()
-            return processed_data
-
-         else:
-        st.info("Carica un file per procedere.")
+        # Download button for the filtered data
+        df_xlsx = to_excel(filtered_data)
+        st.download_button(label="Download Excel file", data=df_xlsx, file_name="filtered_data.xlsx", mime="application/vnd.ms-excel")
 
 if __name__ == "__main__":
     main()
