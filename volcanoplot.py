@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
 from io import BytesIO
 import base64
@@ -20,23 +21,44 @@ def main():
         data = pd.read_excel(uploaded_file)
         st.write("Dati caricati con successo!")
 
-        # Simulazione dei dati di pvalue e log2FoldChange per dimostrazione
-        num_rows = len(data)
-        simulated_log2FoldChange = np.random.normal(0, 1, num_rows)
-        simulated_pvalues = np.random.uniform(0, 0.05, num_rows)
+        # Setpoint e visualizzazione tramite form
+        with st.form(key='my_form'):
+            threshold_pvalue = st.number_input('Inserisci il valore soglia per p-value', min_value=0.0, max_value=1.0, value=0.05)
+            threshold_fold_change = st.number_input('Inserisci il valore soglia per fold change', value=1.0)
+            show_labels = st.checkbox("Mostra etichette")
+            submit_button = st.form_submit_button(label='Genera Volcano Plot')
 
-        # Preparazione dei dati per il nuovo file Excel
-        output_df = pd.DataFrame({
-            'Etichette': data.iloc[:, 0],  # Presumendo che la prima colonna contenga le etichette
-            'log2FoldChange': simulated_log2FoldChange,
-            '-log10(pvalue)': -np.log10(simulated_pvalues),
-            'p-value': simulated_pvalues
-        })
+        if submit_button:
+            # Simulazione dei dati di pvalue e log2FoldChange per dimostrazione
+            num_rows = len(data)
+            simulated_log2FoldChange = np.random.normal(0, 1, num_rows)
+            simulated_pvalues = np.random.uniform(0, 0.05, num_rows)
 
-        # Creazione del link di download per il nuovo file Excel
-        file_name = os.path.splitext(uploaded_file.name)[0] + "_values_from_volcano_plot.xlsx"
-        link = create_download_link(output_df, file_name)
-        st.markdown(link, unsafe_allow_html=True)
+            # Creazione del volcano plot
+            fig, ax = plt.subplots()
+            ax.scatter(simulated_log2FoldChange, -np.log10(simulated_pvalues), c='blue', edgecolors='w')
+
+            if show_labels:
+                for i, label in enumerate(data.iloc[:, 0]):
+                    ax.text(simulated_log2FoldChange[i], -np.log10(simulated_pvalues[i]), label, fontsize=9)
+
+            ax.set_xlabel('Log2 Fold Change')
+            ax.set_ylabel('-Log10(p-value)')
+            ax.set_title('Volcano Plot')
+            st.pyplot(fig)
+
+            # Preparazione dei dati per il nuovo file Excel
+            output_df = pd.DataFrame({
+                'Etichette': data.iloc[:, 0],  # Presumendo che la prima colonna contenga le etichette
+                'log2FoldChange': simulated_log2FoldChange,
+                '-log10(pvalue)': -np.log10(simulated_pvalues),
+                'p-value': simulated_pvalues
+            })
+
+            # Creazione del link di download per il nuovo file Excel
+            file_name = os.path.splitext(uploaded_file.name)[0] + "_values_from_volcano_plot.xlsx"
+            link = create_download_link(output_df, file_name)
+            st.markdown(link, unsafe_allow_html=True)
 
     else:
         st.info("Carica un file per procedere.")
