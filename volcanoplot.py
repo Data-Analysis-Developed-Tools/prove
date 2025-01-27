@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Simuliamo dei dati per il volcano plot
 data = pd.DataFrame({
@@ -18,10 +18,13 @@ show_labels = st.checkbox("Mostra etichette")
 
 # Creazione del volcano plot
 fig, ax = plt.subplots()
-sns.scatterplot(x='log2FoldChange', y='-log10(pvalue)', data=data, ax=ax)
+scatter = ax.scatter(data['log2FoldChange'], data['-log10(pvalue)'], c='blue', edgecolors='w')
 
 if show_labels:
     for i in range(data.shape[0]):
         ax.text(data.iloc[i]['log2FoldChange'], data.iloc[i]['-log10(pvalue)'], data.iloc[i]['label'], fontsize=9)
 
+ax.set_xlabel('Log2 Fold Change')
+ax.set_ylabel('-Log10(p-value)')
+ax.set_title('Volcano Plot')
 st.pyplot(fig)
