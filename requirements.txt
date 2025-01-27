@@ -6,3 +6,4 @@ openpyxl
 plotly
 kaleido
 xlsxwriter
+seaborn==0.11.2
