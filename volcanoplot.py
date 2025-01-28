@@ -6,17 +6,29 @@ import numpy as np
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 
+def color_scale(value):
+    """Restituisce il colore in formato HEX in base al valore, usando una mappatura continua."""
+    norm = plt.Normalize(-abs(value).max(), abs(value).max())
+    colormap = plt.cm.coolwarm
+    if pd.isna(value):
+        return f"background-color: #f1f1f1"  # Grigio per NaN
+    else:
+        # Calcola il colore corrispondente al valore normalizzato
+        rgb = colormap(norm(value), bytes=True)[:3]
+        color = '#{:02x}{:02x}{:02x}'.format(*rgb)
+        return f"background-color: {color}"
+
+def display_data_with_style(df):
+    return df.style.applymap(color_scale, subset=['-log10(p-value) x Log2FoldChange'])
+
 # Funzione per caricare i dati
 def carica_dati(file):
     try:
         dati = pd.read_excel(file, header=[0, 1], index_col=0)
         classi = dati.columns.get_level_values(1).unique()
-        if dati.empty:
-            st.error("Il file Excel è vuoto.")
-            return None, None
         return dati, classi
     except Exception as e:
-        st.error(f"Errore nel caricamento del file: {e}")
+        st.error(f"Errore nel caricamento del file: {str(e)}")
         return None, None
 
 # Calcola la media per ogni variabile e il suo logaritmo in base 10
@@ -60,23 +72,7 @@ def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
     else:
         return None
 
-# Gestisce la colorazione condizionale delle celle nella tabella
-def color_scale(value):
-    """Restituisce il colore in formato HEX in base al valore."""
-    norm = plt.Normalize(-abs(value).max(), abs(value).max())
-    colormap = plt.cm.RdBu
-    if pd.isna(value):
-        return f"background-color: #f1f1f1"  # Grigio per NaN
-    else:
-        # Calcola il colore corrispondente al valore normalizzato
-        rgb = colormap(norm(value), bytes=True)[:3]
-        color = '#{:02x}{:02x}{:02x}'.format(*rgb)
-        return f"background-color: {color}"
-
-def apply_color_scale(df):
-    return df.style.applymap(color_scale, subset=['-log10(p-value) x Log2FoldChange']).render()
-
-# Main function that orchestrates the Streamlit app
+# Streamlit App
 def main():
     st.title("Volcano Plot Interattivo")
     file = st.file_uploader("Carica il file Excel", type=['xlsx'])
@@ -93,9 +89,9 @@ def main():
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
                 st.plotly_chart(fig)
-                # Visualizza i dati sotto il grafico in forma di tabella con colorazione condizionale
-                html = apply_color_scale(dati_preparati)
-                st.markdown(html, unsafe_allow_html=True)
+                # Visualizza i dati sotto il grafico in forma di tabella
+                st.write("Dati visibili attualmente nel grafico:")
+                st.dataframe(display_data_with_style(dati_preparati))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
