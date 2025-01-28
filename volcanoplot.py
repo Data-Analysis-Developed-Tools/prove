@@ -66,6 +66,24 @@ def main():
     # Opzione per mostrare o nascondere le etichette delle variabili nel grafico
     show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
 
+def download_link(object_to_download, download_filename, download_link_text):
+    """
+    Genera un link HTML per scaricare un oggetto Python (come DataFrame) come un file.
+
+    Args:
+    object_to_download (DataFrame, str, file): L'oggetto da scaricare.
+    download_filename (str): il nome del file sotto il quale il file sarà salvato dall'utente.
+    download_link_text (str): il testo del link di download mostrato.
+
+    Returns:
+    str: una stringa HTML con un link di download.
+    """
+    if isinstance(object_to_download, pd.DataFrame):
+        object_to_download = object_to_download.to_csv(index=False)  # Converti il DataFrame in CSV
+    b64 = base64.b64encode(object_to_download.encode()).decode()  # Codifica in base64
+    return f'<a href="data:file/csv;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
+    
+    
     if file is not None and submit_button:
         dati = carica_dati(file)
         if dati is not None:
