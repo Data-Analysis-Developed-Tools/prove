@@ -73,7 +73,7 @@ def main():
                     # Funzionalità di download
                     excel_file = salva_excel(dati_preparati)
                     st.download_button(
-                        label="Salva come Excel",
+                        label="Salva i dati filtrati come file Excel",
                         data=excel_file,
                         file_name="dati_significativi.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
