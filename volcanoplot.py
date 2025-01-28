@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from scipy.stats import ttest_ind
-from matplotlib import colors
 import numpy as np
 import plotly.graph_objects as go
 
@@ -81,25 +80,6 @@ def main():
                 st.error("Nessun dato preparato per il grafico.")
         else:
             st.error("Dati non caricati correttamente.")
-
-# Funzione per la colorazione condizionale delle celle
-def color_scale(val):
-    norm = colors.TwoSlopeNorm(vmin=np.min(dataframe["-log10(p-value) x Log2FoldChange"]),
-                               vcenter=0, vmax=np.max(dataframe["-log10(p-value) x Log2FoldChange"]))
-    color = colors.to_hex(colors.ScalarMappable(norm=norm, cmap='seismic').to_rgba(val))
-    return f'background-color: {color}'
-
-# Applicazione dello stile alla DataFrame
-def style_dataframe(dataframe):
-    styled = dataframe.style.applymap(color_scale, subset=["-log10(p-value) x Log2FoldChange"])
-    return styled
-
-# Codice Streamlit per mostrare la DataFrame stilizzata
-data = {'-log10(p-value) x Log2FoldChange': [0.5, -0.3, 0, 1.2, -1.1]}  # Esempio di dati
-dataframe = pd.DataFrame(data)
-
-if st.button('Mostra DataFrame colorata'):
-    st.dataframe(style_dataframe(dataframe).render(), unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
