@@ -70,8 +70,8 @@ def main():
             size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
             color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
             if size_by_media:
-                point_size_scale = st.slider("Scala dimensione punti (trasformazione esponenziale dei dati)", min_value=1, max_value=100, value=30)
-                point_size_variance = st.slider("Varianza dimensionale dei punti (moltiplicatore dimensionale)", min_value=10, max_value=500, value=50)
+                point_size_scale = st.slider("Scala dimensione punti (exp10 dei dati originali)", min_value=1, max_value=100, value=30)
+                point_size_variance = st.slider("Varianza dimensionale dei punti (exp10 dei dati originali)", min_value=10, max_value=500, value=50)
             else:
                 point_size_scale = 30
                 point_size_variance = 50
