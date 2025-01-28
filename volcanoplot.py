@@ -34,14 +34,14 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
         return None
 
 # Crea il volcano plot con linee e annotazioni
-def crea_volcano_plot(dati, classi):
+def crea_volcano_plot(dati, classi, show_labels):
     if dati is not None:
-        fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile', hover_data=['Variabile'])
+        fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None, hover_data=['Variabile'])
         # Aggiungi linea verticale
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
         # Aggiungi annotazioni per le classi
-        fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*0.95, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red"))
-        fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*0.95, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green"))
+        fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
+        fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
         return fig
     else:
@@ -57,6 +57,7 @@ def main():
     with st.form(key='my_form'):
         fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=1.0)
         p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=1.3)
+        show_labels = st.checkbox("Mostra etichette delle variabili", value=True)  # Checkbox per visualizzare/nascondere le etichette
         submit_button = st.form_submit_button(label='Applica Filtri')
 
     if file is not None and submit_button:
@@ -64,7 +65,7 @@ def main():
         if dati is not None:
             dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati, classi)
+                fig = crea_volcano_plot(dati_preparati, classi, show_labels)
                 if fig is not None:
                     st.plotly_chart(fig)
                 else:
