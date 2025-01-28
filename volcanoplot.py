@@ -83,10 +83,10 @@ def main():
                 st.plotly_chart(fig)
                 # Display data under the chart in an interactive table
                 st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(plt.cm.RdBu((x - dati_preparati['-log10(p-value) x Log2FoldChange'].min()) / (dati_preparati['-log10(p-value) x Log2FoldChange'].max() - dati_preparati['-log10(p-value) x Log2FoldChange'].min()))) if not pd.isna(x) else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
-                st.markdown(f"**Interpretazione dei dati:**")
-                st.markdown(f"- Valori negativi di Log2FoldChange indicano una sovraespressione in {classi[1]}")
-                st.markdown(f"- Valori positivi di Log2FoldChange indicano una sovraespressione in {classi[0]}")
+                # Use the norm and colormap to scale color from blue to red, white at zero
+                norm = mcolors.TwoSlopeNorm(vmin=dati_preparati['-log10(p-value) x Log2FoldChange'].min(), vcenter=0, vmax=dati_preparati['-log10(p-value) x Log2FoldChange'].max())
+                colormap = plt.cm.coolwarm
+                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(colormap(norm(x))) if not pd.isna(x) else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
