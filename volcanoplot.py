@@ -11,11 +11,8 @@ def carica_dati(file):
         dati = pd.read_excel(file, header=[0, 1], index_col=0)
         classi = dati.columns.get_level_values(1).unique()
         return dati, classi
-    except ValueError as e:
-        st.error(f"Errore nel caricamento del file: {str(e)}")
-        return None, None
     except Exception as e:
-        st.error(f"Errore non gestito: {str(e)}")
+        st.error(f"Errore nel caricamento del file: {str(e)}")
         return None, None
 
 # Calcola la media per ogni variabile e il suo logaritmo in base 10
@@ -35,8 +32,8 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
                 t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
                 p_val_log = -np.log10(p_val) if p_val > 0 else None
                 pval_log2fc = p_val_log * media_diff if p_val_log is not None else None
-                risultati.append([var, media_diff, p_val_log, pval_log2fc])
-        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', '-log10(p-value) x Log2FoldChange'])
+                risultati.append([var, media_diff, p_val_log, pval_log2fc, media_log[var]])
+        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', '-log10(p-value) x Log2FoldChange', 'MediaLog'])
         return risultati_df
     else:
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
@@ -78,13 +75,10 @@ def main():
                 st.plotly_chart(fig)
                 # Visualizza i dati sotto il grafico in forma di tabella interattiva
                 st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(dati_preparati.style.highlight_max(axis=0))
+                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {"#FF0000" if x > 0 else "#0000FF" if x < 0 else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
             st.error("Dati non caricati correttamente.")
     else:
-        st.warning("Si prega di caricare un file Excel.")
-
-if __name__ == "__main__":
-    main()
+        st.warning("Si prega di caricare un file Excel
