@@ -60,20 +60,37 @@ def main():
         show_labels = st.checkbox("Mostra etichette delle variabili", value=True)  # Checkbox per visualizzare/nascondere le etichette
         submit_button = st.form_submit_button(label='Applica Filtri')
 
+   file = st.file_uploader("Carica il file Excel", type=['xlsx'])
     if file is not None and submit_button:
-        dati, classi = carica_dati(file)
+        dati = carica_dati(file)
         if dati is not None:
-            dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
+            dati_preparati = prepara_dati(dati, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati, classi, show_labels)
+                fig = crea_volcano_plot(dati_preparati)
                 if fig is not None:
                     st.plotly_chart(fig)
+                    # Funzionalità di download
+                    excel_file = salva_excel(dati_preparati)
+                    st.download_button(
+                        label="Salva come Excel",
+                        data=excel_file,
+                        file_name="dati_significativi.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
                 else:
-                    st.error("Non ci sono dati sufficienti per creare il grafico.")
+                    st.error("Il grafico non contiene dati da visualizzare.")
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
             st.error("Dati non caricati correttamente.")
-
+            
+# Funzione per salvare i dati significativi in un file Excel
+def salva_excel(dati):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        dati.to_excel(writer, index=False)
+    output.seek(0)
+    return output
+    
 if __name__ == "__main__":
     main()
