@@ -4,6 +4,8 @@ import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -11,8 +13,8 @@ def carica_dati(file):
         dati = pd.read_excel(file, header=[0, 1], index_col=0)
         classi = dati.columns.get_level_values(1).unique()
         return dati, classi
-    except Exception as e:
-        st.error(f"Errore nel caricamento del file: {str(e)}")
+    except ValueError:
+        st.error("Il file caricato non ha due livelli di intestazione come richiesto.")
         return None, None
 
 # Calcola la media per ogni variabile e il suo logaritmo in base 10
@@ -32,22 +34,22 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
                 t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
                 p_val_log = -np.log10(p_val) if p_val > 0 else None
                 pval_log2fc = p_val_log * media_diff if p_val_log is not None else None
-                risultati.append([var, media_diff, p_val_log, pval_log2fc, media_log[var]])
-        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', '-log10(p-value) x Log2FoldChange', 'MediaLog'])
+                risultati.append([var, media_diff, p_val_log, pval_log2fc])
+        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', '-log10(p-value) x Log2FoldChange'])
         return risultati_df
     else:
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
         return None
 
 # Crea il volcano plot con linee e annotazioni
-def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance):
+def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
     if dati is not None:
-        size = (np.power(10, dati['MediaLog'] - dati['MediaLog'].min()) / (np.power(10, dati['MediaLog'].max()) - np.power(10, dati['MediaLog'].min())) * point_size_scale) * point_size_variance if size_by_media else None
+        size = dati['MediaLog'] * 2 if size_by_media else None
         color = dati['MediaLog'] if color_by_media else None
         fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
                          hover_data=['Variabile'], size=size, color=color,
                          color_continuous_scale='RdYlBu_r',
-                         size_max=50)
+                         size_max=30)
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
         fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
         fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
@@ -55,6 +57,16 @@ def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, 
         return fig
     else:
         return None
+
+# Funzione per la colorazione condizionale
+def color_scale(val):
+    norm = plt.Normalize(-val.abs().max(), val.abs().max())  # Normalizza i valori
+    rgba = plt.cm.RdBu(norm(val))  # Ottiene il colore RGBA
+    return f'background-color: {mcolors.to_hex(rgba)}'
+
+# Mostra i dati con lo stile personalizzato
+def display_data_with_style(df):
+    return df.style.applymap(color_scale, subset=['-log10(p-value) x Log2FoldChange'])
 
 # Streamlit App
 def main():
@@ -69,19 +81,12 @@ def main():
             show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
             size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
             color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
-            if size_by_media:
-                point_size_scale = st.slider("Scala dimensione punti (exp10 dei dati originali)", min_value=1, max_value=100, value=30)
-                point_size_variance = st.slider("Varianza dimensionale dei punti (exp10 dei dati originali)", min_value=10, max_value=500, value=50)
-            else:
-                point_size_scale = 30
-                point_size_variance = 50
             dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance)
+                fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
                 st.plotly_chart(fig)
-                # Visualizza i dati sotto il grafico in forma di tabella interattiva
                 st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {"#FF0000" if x > 0 else "#0000FF" if x < 0 else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
+                st.dataframe(display_data_with_style(dati_preparati))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
