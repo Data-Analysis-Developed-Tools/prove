@@ -41,29 +41,18 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
         return None
 
-# Applica una scala di colore personalizzata
-def apply_custom_color_scale(df):
-    if df is not None:
-        norm = mcolors.Normalize(vmin=-df['-log10(p-value) x Log2FoldChange'].abs().max(), vmax=df['-log10(p-value) x Log2FoldChange'].abs().max())
-        cmap = plt.cm.coolwarm
-        def color_scale(val):
-            color = mcolors.rgb2hex(cmap(norm(val)))
-            return f'background-color: {color}'
-        return df.style.applymap(color_scale, subset=['-log10(p-value) x Log2FoldChange'])
-    return None
-
 # Crea il volcano plot con linee e annotazioni
 def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance):
     if dati is not None:
-        size = None
-        color = None
-        if size_by_media:
-            size = (np.power(10, dati['MediaLog'] - dati['MediaLog'].min()) / (np.power(10, dati['MediaLog'].max()) - np.power(10, dati['MediaLog'].min())) * point_size_scale) * point_size_variance if size_by_media else None
-        if color_by_media:
-            color = dati['MediaLog']
+        size = (np.power(10, dati['MediaLog'] - dati['MediaLog'].min()) / (np.power(10, dati['MediaLog'].max()) - np.power(10, dati['MediaLog'].min())) * point_size_scale) * point_size_variance if size_by_media else None
+        color = dati['MediaLog'] if color_by_media else None
         fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
                          hover_data=['Variabile'], size=size, color=color,
-                         color_continuous_scale='RdYlBu_r', size_max=50)
+                         color_continuous_scale='RdYlBu_r',
+                         size_max=50)
+        fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
+        fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
+        fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
         return fig
     else:
@@ -82,14 +71,23 @@ def main():
             show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
             size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
             color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
+            if size_by_media:
+                point_size_scale = st.slider("Scala dimensione punti (exp10 dei dati originali)", min_value=1, max_value=100, value=30)
+                point_size_variance = st.slider("Varianza dimensionale dei punti (exp10 dei dati originali)", min_value=10, max_value=500, value=50)
+            else:
+                point_size_scale = 30
+                point_size_variance = 50
             dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance)
                 st.plotly_chart(fig)
-                # Visualizza i dati sotto il grafico in forma di tabella interattiva
-                styled_df = apply_custom_color_scale(dati_preparati)
-                if styled_df is not None:
-                    st.dataframe(styled_df.render(), unsafe_allow_html=True)
+                # Display data under the chart in an interactive table
+                st.write("Dati visibili attualmente nel grafico:")
+                norm = mcolors.TwoSlopeNorm(vmin=dati_preparati['-log10(p-value) x Log2FoldChange'].min(), vcenter=0, vmax=dati_preparati['-log10(p-value) x Log2FoldChange'].max())
+                colormap = plt.cm.coolwarm
+                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(colormap(norm(x)))}', subset=['-log10(p-value) x Log2FoldChange']))
+                st.write(f"Variabili con valori bassi ('{classi[1]}') corrispondono a sopra-espressione in {classi[1]}")
+                st.write(f"Variabili con valori alti ('{classi[0]}') corrispondono a sopra-espressione in {classi[0]}")
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
