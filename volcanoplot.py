@@ -2,9 +2,28 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from scipy.stats import ttest_ind
+from matplotlib import colors
 import numpy as np
 import plotly.graph_objects as go
-from matplotlib import colors as mcolors
+
+# Funzione per la colorazione condizionale delle celle
+def color_scale(val):
+    norm = colors.TwoSlopeNorm(vmin=np.min(dataframe["-log10(p-value) x Log2FoldChange"]),
+                               vcenter=0, vmax=np.max(dataframe["-log10(p-value) x Log2FoldChange"]))
+    color = colors.to_hex(colors.ScalarMappable(norm=norm, cmap='seismic').to_rgba(val))
+    return f'background-color: {color}'
+
+# Applicazione dello stile alla DataFrame
+def style_dataframe(dataframe):
+    styled = dataframe.style.applymap(color_scale, subset=["-log10(p-value) x Log2FoldChange"])
+    return styled
+
+# Codice Streamlit per mostrare la DataFrame stilizzata
+data = {'-log10(p-value) x Log2FoldChange': [0.5, -0.3, 0, 1.2, -1.1]}  # Esempio di dati
+dataframe = pd.DataFrame(data)
+
+if st.button('Mostra DataFrame colorata'):
+    st.dataframe(style_dataframe(dataframe).render(), unsafe_allow_html=True)
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -39,12 +58,6 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
     else:
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
         return None
-
-def color_scale(val):
-    """Colore le celle basate su una scala da blu a rosso."""
-    norm = mcolors.TwoSlopeNorm(vmin=-3, vcenter=0, vmax=3)  # Adattare i valori di vmin e vmax in base ai dati
-    rgba = mcolors.to_rgba('white' if val == 0 else ('blue' if val < 0 else 'red'), norm(val))
-    return f'background-color: {mcolors.to_hex(rgba)}'
 
 # Crea il volcano plot con linee e annotazioni
 def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
@@ -82,7 +95,7 @@ def main():
                 st.plotly_chart(fig)
                 # Visualizza i dati sotto il grafico in forma di tabella interattiva
                 st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(dati_preparati.style.applymap(color_scale, subset=['-log10(p-value) x Log2FoldChange']))
+                st.dataframe(dati_preparati.style.highlight_max(axis=0))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
