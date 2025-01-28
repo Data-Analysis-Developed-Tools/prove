@@ -81,4 +81,7 @@ def main():
         else:
             st.error("Dati non caricati correttamente.")
     else:
-        st.warning("Si prega di caricare un file Excel
+        st.warning("Si prega di caricare un file Excel.")  # Fixed the unterminated string error here.
+
+if __name__ == "__main__":
+    main()
