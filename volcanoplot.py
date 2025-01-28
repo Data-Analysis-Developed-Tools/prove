@@ -49,13 +49,6 @@ def convert_fig_to_image(fig):
     img_bytes = fig.to_image(format="jpg")
     return img_bytes
 
-# Funzione per generare un link di download per il file DataFrame
-def download_link(object_to_download, download_filename, download_link_text):
-    if isinstance(object_to_download, pd.DataFrame):
-        object_to_download = object_to_download.to_excel(BytesIO(), index=False)
-    b64 = base64.b64encode(object_to_download).decode()
-    return f'<a href="data:file/xls;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
-
 # Streamlit App
 def main():
     st.title("Volcano Plot Interattivo")
@@ -87,6 +80,13 @@ def main():
                     # Link per scaricare il DataFrame come Excel
                     tmp_download_link = download_link(dati_preparati, "dati_significativi.xlsx", "Scarica i dati come Excel")
                     st.markdown(tmp_download_link, unsafe_allow_html=True)
+
+# Funzione per generare un link di download per il file DataFrame
+def download_link(object_to_download, download_filename, download_link_text):
+    if isinstance(object_to_download, pd.DataFrame):
+        object_to_download = object_to_download.to_excel(BytesIO(), index=False)
+    b64 = base64.b64encode(object_to_download).decode()
+    return f'<a href="data:file/xls;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
 
 if __name__ == "__main__":
     main()
