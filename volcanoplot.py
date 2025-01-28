@@ -79,7 +79,8 @@ def main():
                 if fig is not None:
                     st.plotly_chart(fig)
                     refresh_button = st.button("Aggiorna tabella")
-                    if refresh_button:
+                    if refresh_button or not st.session_state.get('table_shown', False):
+                        st.session_state['table_shown'] = True
                         st.write("Dati visibili attualmente nel grafico:")
                         st.dataframe(dati_preparati)
                 else:
