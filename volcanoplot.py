@@ -23,7 +23,6 @@ def calcola_media_log(dati):
 # Preparazione dei dati per il volcano plot
 def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
     if dati is not None:
-        media_log = calcola_media_log(dati.iloc[:, 1:])
         risultati = []
         for var in dati.index:
             valori = [dati.loc[var, dati.columns.get_level_values(1) == classe].dropna().values for classe in classi]
@@ -31,9 +30,9 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
                 media_diff = np.log2(np.mean(valori[0]) / np.mean(valori[1]))
                 t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
                 p_val_log = -np.log10(p_val) if p_val > 0 else None
-                if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
-                    risultati.append([var, media_diff, p_val_log, media_log[var]])
-        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', 'MediaLog'])
+                pval_log2fc = p_val_log * media_diff if p_val_log is not None else None
+                risultati.append([var, media_diff, p_val_log, pval_log2fc])
+        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', '-log10(p-value) x Log2FoldChange'])
         return risultati_df
     else:
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
@@ -61,28 +60,21 @@ def main():
     st.title("Volcano Plot Interattivo")
     file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 
-    # Form per inserire i threshold
-    with st.form(key='my_form'):
-        fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=0.0)
-        p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=0.05)
-        show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
-        size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
-        color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
-        submit_button = st.form_submit_button(label='Applica Filtri')
-
-    if file is not None and submit_button:
+    if file is not None:
         dati, classi = carica_dati(file)
         if dati is not None:
+            fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=0.0)
+            p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=0.05)
+            show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
+            size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
+            color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
             dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
-                if fig is not None:
-                    st.plotly_chart(fig)
-                    # Visualizza i dati sotto il grafico in forma di tabella
-                    st.write("Dati visibili attualmente nel grafico:")
-                    st.dataframe(dati_preparati)
-                else:
-                    st.error("Il grafico non contiene dati da visualizzare.")
+                st.plotly_chart(fig)
+                # Visualizza i dati sotto il grafico in forma di tabella
+                st.write("Dati visibili attualmente nel grafico:")
+                st.dataframe(dati_preparati)
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
