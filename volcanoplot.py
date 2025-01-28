@@ -4,6 +4,7 @@ import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
 import plotly.graph_objects as go  # Import necessario per elementi grafici aggiuntivi
+from io import BytesIO
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -50,7 +51,6 @@ def crea_volcano_plot(dati, classi, show_labels):
 # Streamlit App
 def main():
     st.title("Volcano Plot Interattivo")
-    
     file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 
     # Form per inserire i threshold
@@ -60,13 +60,12 @@ def main():
         show_labels = st.checkbox("Mostra etichette delle variabili", value=True)  # Checkbox per visualizzare/nascondere le etichette
         submit_button = st.form_submit_button(label='Applica Filtri')
 
-   file = st.file_uploader("Carica il file Excel", type=['xlsx'])
     if file is not None and submit_button:
-        dati = carica_dati(file)
+        dati, classi = carica_dati(file)
         if dati is not None:
-            dati_preparati = prepara_dati(dati, fold_change_threshold, p_value_threshold)
+            dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati)
+                fig = crea_volcano_plot(dati_preparati, classi, show_labels)
                 if fig is not None:
                     st.plotly_chart(fig)
                     # Funzionalità di download
