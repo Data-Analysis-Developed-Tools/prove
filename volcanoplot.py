@@ -78,11 +78,9 @@ def main():
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
                 if fig is not None:
                     st.plotly_chart(fig)
-                    refresh_button = st.button("Aggiorna tabella")
-                    if refresh_button or not st.session_state.get('table_shown', False):
-                        st.session_state['table_shown'] = True
-                        st.write("Dati visibili attualmente nel grafico:")
-                        st.dataframe(dati_preparati)
+                    # Visualizza i dati sotto il grafico in forma di tabella
+                    st.write("Dati visibili attualmente nel grafico:")
+                    st.dataframe(dati_preparati)
                 else:
                     st.error("Il grafico non contiene dati da visualizzare.")
             else:
