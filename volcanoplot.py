@@ -80,21 +80,7 @@ def main():
                     # Link per scaricare il DataFrame come Excel
                     tmp_download_link = download_link(dati_preparati, "dati_significativi.xlsx", "Scarica i dati come Excel")
                     st.markdown(tmp_download_link, unsafe_allow_html=True)
-
-     # Preparazione dei dati per il nuovo file Excel
-        output_df = pd.DataFrame({
-            'Etichette': data.iloc[:, 0],  # Presumendo che la prima colonna contenga le etichette
-            'log2FoldChange': simulated_log2FoldChange,
-            '-log10(pvalue)': -np.log10(simulated_pvalues),
-            'p-value': simulated_pvalues
-    })
-
-    # Creazione del link di download per il nuovo file Excel
-    file_name = os.path.splitext(uploaded_file.name)[0] + "_values_from_volcano_plot.xlsx"
-    link = create_download_link(output_df, file_name)
-    st.markdown(link, unsafe_allow_html=True)
-
-else:
+    else:
         st.info("Carica un file per procedere.")
 
 if __name__ == "__main__":
