@@ -55,8 +55,8 @@ def main():
 
     # Form per inserire i threshold
     with st.form(key='my_form'):
-        fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=1.0)
-        p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=1.3)
+        fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=0.0)
+        p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=0.05)
         show_labels = st.checkbox("Mostra etichette delle variabili", value=True)  # Checkbox per visualizzare/nascondere le etichette
         submit_button = st.form_submit_button(label='Applica Filtri')
 
