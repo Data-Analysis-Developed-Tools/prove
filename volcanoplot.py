@@ -42,7 +42,8 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
 # Crea il volcano plot con linee e annotazioni
 def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance):
     if dati is not None:
-        size = ((dati['MediaLog'] - dati['MediaLog'].min()) / (dati['MediaLog'].max() - dati['MediaLog'].min()) * point_size_scale * point_size_variance) if size_by_media else None
+        # Applichiamo l'esponenziale di 10 per amplificare le differenze nelle dimensioni
+        size = (np.power(10, dati['MediaLog'] - dati['MediaLog'].min()) / (np.power(10, dati['MediaLog'].max()) - np.power(10, dati['MediaLog'].min())) * point_size_scale) * point_size_variance if size_by_media else None
         color = dati['MediaLog'] if color_by_media else None
         fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
                          hover_data=['Variabile'], size=size, color=color,
@@ -70,8 +71,8 @@ def main():
             size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
             color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
             if size_by_media:
-                point_size_scale = st.slider("Scala dimensione punti", min_value=5, max_value=100, value=30)
-                point_size_variance = st.slider("Varianza dimensionale dei punti", min_value=10, max_value=200, value=50)
+                point_size_scale = st.slider("Scala dimensione punti", min_value=1, max_value=100, value=30)
+                point_size_variance = st.slider("Varianza dimensionale dei punti", min_value=1, max_value=200, value=50)
             else:
                 point_size_scale = 30
                 point_size_variance = 50
