@@ -5,8 +5,9 @@ from scipy.stats import ttest_ind
 import numpy as np
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
-# Function to load the data
+# Funzione per caricare i dati
 def carica_dati(file):
     try:
         dati = pd.read_excel(file, header=[0, 1], index_col=0)
@@ -16,12 +17,12 @@ def carica_dati(file):
         st.error(f"Errore nel caricamento del file: {str(e)}")
         return None, None
 
-# Calculate the mean and logarithm base 10 for each variable
+# Calcola la media per ogni variabile e il suo logaritmo in base 10
 def calcola_media_log(dati):
     media = dati.mean(axis=1)
     return np.log10(media + 1)  # Add 1 to avoid logarithm of zero
 
-# Prepare the data for the volcano plot
+# Preparazione dei dati per il volcano plot
 def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
     if dati is not None:
         media_log = calcola_media_log(dati.iloc[:, 1:])
@@ -40,7 +41,7 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
         return None
 
-# Create the volcano plot with lines and annotations
+# Crea il volcano plot con linee e annotazioni
 def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance):
     if dati is not None:
         size = (np.power(10, dati['MediaLog'] - dati['MediaLog'].min()) / (np.power(10, dati['MediaLog'].max()) - np.power(10, dati['MediaLog'].min())) * point_size_scale) * point_size_variance if size_by_media else None
@@ -82,7 +83,7 @@ def main():
                 st.plotly_chart(fig)
                 # Display data under the chart in an interactive table
                 st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {plt.cm.RdBu(x)}', subset=['-log10(p-value) x Log2FoldChange']))
+                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(plt.cm.RdBu((x - dati_preparati['-log10(p-value) x Log2FoldChange'].min()) / (dati_preparati['-log10(p-value) x Log2FoldChange'].max() - dati_preparati['-log10(p-value) x Log2FoldChange'].min()))) if not pd.isna(x) else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
