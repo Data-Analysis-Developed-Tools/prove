@@ -42,13 +42,13 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
 # Crea il volcano plot con linee e annotazioni
 def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
     if dati is not None:
-        # Aggiornamento della dimensione dei punti per maggiore differenziazione
-        size = (dati['MediaLog'] - dati['MediaLog'].min()) / (dati['MediaLog'].max() - dati['MediaLog'].min()) * 20 if size_by_media else None
+        # Aumento il range di dimensione dei punti
+        size = ((dati['MediaLog'] - dati['MediaLog'].min()) / (dati['MediaLog'].max() - dati['MediaLog'].min()) * 50) if size_by_media else None
         color = dati['MediaLog'] if color_by_media else None
         fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
                          hover_data=['Variabile'], size=size, color=color,
                          color_continuous_scale='RdYlBu_r',
-                         size_max=20)  # Adjusted size_max to limit the maximum size
+                         size_max=50)  # Incrementato size_max
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
         fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
         fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
