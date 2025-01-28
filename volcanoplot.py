@@ -40,11 +40,14 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
         return None
 
 # Crea il volcano plot con linee e annotazioni
-def crea_volcano_plot(dati, classi, show_labels, size_by_media):
+def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
     if dati is not None:
-        size = dati['Media'] if size_by_media else None
+        size = dati['Media'] * 2 if size_by_media else None  # Raddoppia la scala delle dimensioni
+        color = dati['Media'] if color_by_media else None  # Imposta i colori basati sulla media
         fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
-                         hover_data=['Variabile'], size=size, size_max=15)
+                         hover_data=['Variabile'], size=size, color=color,
+                         color_continuous_scale='RdYlBu_r',  # Scala di colori rovesciata
+                         size_max=30)  # Aumenta il limite massimo della dimensione dei punti
         # Aggiungi linea verticale
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
         # Aggiungi annotazioni per le classi
@@ -64,8 +67,9 @@ def main():
     with st.form(key='my_form'):
         fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=0.0)
         p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=0.05)
-        show_labels = st.checkbox("Mostra etichette delle variabili", value=True)  # Checkbox per visualizzare/nascondere le etichette
-        size_by_media = st.checkbox("Dimensiona punti per media", value=False)  # Nuova opzione per dimensionare i punti
+        show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
+        size_by_media = st.checkbox("Dimensiona punti per media", value=False)
+        color_by_media = st.checkbox("Colora punti per media", value=False)
         submit_button = st.form_submit_button(label='Applica Filtri')
 
     if file is not None and submit_button:
@@ -73,7 +77,7 @@ def main():
         if dati is not None:
             dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media)
+                fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
                 if fig is not None:
                     st.plotly_chart(fig)
                 else:
@@ -82,14 +86,6 @@ def main():
                 st.error("Nessun dato preparato per il grafico.")
         else:
             st.error("Dati non caricati correttamente.")
-
-# Funzione per salvare i dati significativi in un file Excel
-def salva_excel(dati):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        dati.to_excel(writer, index=False)
-    output.seek(0)
-    return output
 
 if __name__ == "__main__":
     main()
