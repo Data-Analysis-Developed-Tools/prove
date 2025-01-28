@@ -40,15 +40,15 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
         return None
 
 # Crea il volcano plot con linee e annotazioni
-def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
+def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance):
     if dati is not None:
-        # Aumento il range di dimensione dei punti
-        size = ((dati['MediaLog'] - dati['MediaLog'].min()) / (dati['MediaLog'].max() - dati['MediaLog'].min()) * 50) if size_by_media else None
+        # Applicazione degli slider per la dimensione dei punti
+        size = ((dati['MediaLog'] - dati['MediaLog'].min()) / (dati['MediaLog'].max() - dati['MediaLog'].min()) * point_size_scale * point_size_variance) if size_by_media else None
         color = dati['MediaLog'] if color_by_media else None
         fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
                          hover_data=['Variabile'], size=size, color=color,
                          color_continuous_scale='RdYlBu_r',
-                         size_max=50)  # Incrementato size_max
+                         size_max=50)
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
         fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
         fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
@@ -70,9 +70,11 @@ def main():
             show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
             size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
             color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
+            point_size_scale = st.slider("Scala dimensione punti", min_value=10, max_value=100, value=30) if size_by_media else 30
+            point_size_variance = st.slider("Varianza dimensionale dei punti", min_value=10, max_value=100, value=50) if size_by_media else 50
             dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
+                fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance)
                 st.plotly_chart(fig)
                 # Visualizza i dati sotto il grafico in forma di tabella interattiva
                 st.write("Dati visibili attualmente nel grafico:")
