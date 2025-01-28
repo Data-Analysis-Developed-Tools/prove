@@ -4,6 +4,7 @@ import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
 import plotly.graph_objects as go
+import json
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -52,6 +53,9 @@ def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
         fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
         fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
+
+        # Gestione degli eventi di selezione
+        fig.update_layout(dragmode='select')
         return fig
     else:
         return None
@@ -77,10 +81,13 @@ def main():
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
                 if fig is not None:
-                    st.plotly_chart(fig)
-                    # Visualizza i dati sotto il grafico in forma di tabella
-                    st.write("Dati visibili attualmente nel grafico:")
-                    st.dataframe(dati_preparati)
+                    st.plotly_chart(fig, use_container_width=True)
+                    selected_points = st.text_input("Enter selected points", "")
+                    if selected_points:
+                        indices = json.loads(selected_points)
+                        selected_data = dati_preparati.iloc[indices]
+                        st.write("Selected Data:")
+                        st.dataframe(selected_data)
                 else:
                     st.error("Il grafico non contiene dati da visualizzare.")
             else:
