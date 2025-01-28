@@ -3,27 +3,28 @@ import pandas as pd
 import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
-import plotly.graph_objects as go  # Import necessario per elementi grafici aggiuntivi
+import plotly.graph_objects as go
 from io import BytesIO
 
 # Funzione per caricare i dati
 def carica_dati(file):
     try:
         dati = pd.read_excel(file, header=[0, 1], index_col=0)
-        classi = dati.columns.get_level_values(1).unique()  # Estrae i nomi delle classi
+        classi = dati.columns.get_level_values(1).unique()
         return dati, classi
     except ValueError:
         st.error("Il file caricato non ha due livelli di intestazione come richiesto.")
         return None, None
 
-# Calcola la media per ogni variabile
-def calcola_media(dati):
-    return dati.mean(axis=1)
+# Calcola la media per ogni variabile e il suo logaritmo in base 10
+def calcola_media_log(dati):
+    media = dati.mean(axis=1)
+    return np.log10(media + 1)  # Aggiungi 1 per evitare logaritmo di zero
 
 # Preparazione dei dati per il volcano plot
 def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
     if dati is not None:
-        media = calcola_media(dati.iloc[:, 1:])  # Calcola la media ignorando la prima colonna (indice)
+        media_log = calcola_media_log(dati.iloc[:, 1:])
         risultati = []
         for var in dati.index:
             valori = [dati.loc[var, dati.columns.get_level_values(1) == classe].dropna().values for classe in classi]
@@ -32,8 +33,8 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
                 t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
                 p_val_log = -np.log10(p_val) if p_val > 0 else None
                 if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
-                    risultati.append([var, media_diff, p_val_log, media[var]])
-        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', 'Media'])
+                    risultati.append([var, media_diff, p_val_log, media_log[var]])
+        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', 'MediaLog'])
         return risultati_df
     else:
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
@@ -42,15 +43,13 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
 # Crea il volcano plot con linee e annotazioni
 def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
     if dati is not None:
-        size = dati['Media'] * 2 if size_by_media else None  # Raddoppia la scala delle dimensioni
-        color = dati['Media'] if color_by_media else None  # Imposta i colori basati sulla media
+        size = dati['MediaLog'] * 2 if size_by_media else None
+        color = dati['MediaLog'] if color_by_media else None
         fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
                          hover_data=['Variabile'], size=size, color=color,
-                         color_continuous_scale='RdYlBu_r',  # Scala di colori rovesciata
-                         size_max=30)  # Aumenta il limite massimo della dimensione dei punti
-        # Aggiungi linea verticale
+                         color_continuous_scale='RdYlBu_r',
+                         size_max=30)
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
-        # Aggiungi annotazioni per le classi
         fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
         fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
