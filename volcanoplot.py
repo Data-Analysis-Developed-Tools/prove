@@ -4,7 +4,6 @@ import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
 import plotly.graph_objects as go
-import json
 
 # Funzione per caricare i dati
 def carica_dati(file):
