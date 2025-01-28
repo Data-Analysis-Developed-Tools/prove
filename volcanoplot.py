@@ -85,8 +85,7 @@ def main():
                 st.write("Dati visibili attualmente nel grafico:")
                 norm = mcolors.TwoSlopeNorm(vmin=dati_preparati['-log10(p-value) x Log2FoldChange'].min(), vcenter=0, vmax=dati_preparati['-log10(p-value) x Log2FoldChange'].max())
                 colormap = plt.cm.coolwarm
-                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(colormap(norm(x))) if not pd.isna(x) else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
-                # Adding post-table information about the variable classes
+                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(colormap(norm(x)))}', subset=['-log10(p-value) x Log2FoldChange']))
                 st.write(f"Variabili con valori bassi ('{classi[1]}') corrispondono a sopra-espressione in {classi[1]}")
                 st.write(f"Variabili con valori alti ('{classi[0]}') corrispondono a sopra-espressione in {classi[0]}")
             else:
