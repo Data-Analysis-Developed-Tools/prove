@@ -67,8 +67,8 @@ def main():
         fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=0.0)
         p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=0.05)
         show_labels = st.checkbox("Mostra etichette delle variabili", value=True)
-        size_by_media = st.checkbox("Dimensiona punti per media", value=False)
-        color_by_media = st.checkbox("Colora punti per media", value=False)
+        size_by_media = st.checkbox("Dimensiona punti per media valori assoluti inter-tesi", value=False)
+        color_by_media = st.checkbox("Colora punti per media dei valori assoluti inter-tesi", value=False)
         submit_button = st.form_submit_button(label='Applica Filtri')
 
     if file is not None and submit_button:
