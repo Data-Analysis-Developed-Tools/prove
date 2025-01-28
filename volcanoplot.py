@@ -4,7 +4,6 @@ import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
 import plotly.graph_objects as go
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
 # Funzione per caricare i dati
@@ -58,16 +57,6 @@ def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media):
     else:
         return None
 
-# Funzione per la colorazione condizionale
-def color_scale(val):
-    norm = plt.Normalize(-val.abs().max(), val.abs().max())  # Normalizza i valori
-    rgba = plt.cm.RdBu(norm(val))  # Ottiene il colore RGBA
-    return f'background-color: {mcolors.to_hex(rgba)}'
-
-# Mostra i dati con lo stile personalizzato
-def display_data_with_style(df):
-    return df.style.applymap(color_scale, subset=['-log10(p-value) x Log2FoldChange'])
-
 # Streamlit App
 def main():
     st.title("Volcano Plot Interattivo")
@@ -85,8 +74,9 @@ def main():
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
                 st.plotly_chart(fig)
+                # Visualizza i dati sotto il grafico in forma di tabella
                 st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(display_data_with_style(dati_preparati))
+                st.dataframe(dati_preparati)
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
