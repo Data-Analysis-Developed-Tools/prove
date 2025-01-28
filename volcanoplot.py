@@ -23,6 +23,7 @@ def calcola_media_log(dati):
 # Preparazione dei dati per il volcano plot
 def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
     if dati is not None:
+        media_log = calcola_media_log(dati.iloc[:, 1:])
         risultati = []
         for var in dati.index:
             valori = [dati.loc[var, dati.columns.get_level_values(1) == classe].dropna().values for classe in classi]
@@ -72,9 +73,9 @@ def main():
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media)
                 st.plotly_chart(fig)
-                # Visualizza i dati sotto il grafico in forma di tabella
+                # Visualizza i dati sotto il grafico in forma di tabella interattiva
                 st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(dati_preparati)
+                st.dataframe(dati_preparati.style.highlight_max(axis=0))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
