@@ -20,7 +20,7 @@ def carica_dati(file):
 # Calcola la media per ogni variabile e il suo logaritmo in base 10
 def calcola_media_log(dati):
     media = dati.mean(axis=1)
-    return np.log10(media + 1)  # Add 1 to avoid logarithm of zero
+    return np.log10(media + 1)  # Aggiungi 1 per evitare logaritmo di zero
 
 # Preparazione dei dati per il volcano plot
 def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
@@ -84,6 +84,9 @@ def main():
                 # Display data under the chart in an interactive table
                 st.write("Dati visibili attualmente nel grafico:")
                 st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(plt.cm.RdBu((x - dati_preparati['-log10(p-value) x Log2FoldChange'].min()) / (dati_preparati['-log10(p-value) x Log2FoldChange'].max() - dati_preparati['-log10(p-value) x Log2FoldChange'].min()))) if not pd.isna(x) else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
+                st.markdown(f"**Interpretazione dei dati:**")
+                st.markdown(f"- Valori negativi di Log2FoldChange indicano una sovraespressione in {classi[1]}")
+                st.markdown(f"- Valori positivi di Log2FoldChange indicano una sovraespressione in {classi[0]}")
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
