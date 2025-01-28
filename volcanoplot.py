@@ -16,9 +16,14 @@ def carica_dati(file):
         st.error("Il file caricato non ha due livelli di intestazione come richiesto.")
         return None, None
 
+# Calcola la media per ogni variabile
+def calcola_media(dati):
+    return dati.mean(axis=1)
+
 # Preparazione dei dati per il volcano plot
 def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
     if dati is not None:
+        media = calcola_media(dati.iloc[:, 1:])  # Calcola la media ignorando la prima colonna (indice)
         risultati = []
         for var in dati.index:
             valori = [dati.loc[var, dati.columns.get_level_values(1) == classe].dropna().values for classe in classi]
@@ -27,17 +32,19 @@ def prepara_dati(dati, classi, fold_change_threshold, p_value_threshold):
                 t_stat, p_val = ttest_ind(valori[0], valori[1], equal_var=False)
                 p_val_log = -np.log10(p_val) if p_val > 0 else None
                 if abs(media_diff) >= fold_change_threshold and p_val_log >= p_value_threshold:
-                    risultati.append([var, media_diff, p_val_log])
-        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)'])
+                    risultati.append([var, media_diff, p_val_log, media[var]])
+        risultati_df = pd.DataFrame(risultati, columns=['Variabile', 'Log2FoldChange', '-log10(p-value)', 'Media'])
         return risultati_df
     else:
         st.error("Il dataframe non contiene un indice multi-livello come atteso.")
         return None
 
 # Crea il volcano plot con linee e annotazioni
-def crea_volcano_plot(dati, classi, show_labels):
+def crea_volcano_plot(dati, classi, show_labels, size_by_media):
     if dati is not None:
-        fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None, hover_data=['Variabile'])
+        size = dati['Media'] if size_by_media else None
+        fig = px.scatter(dati, x='Log2FoldChange', y='-log10(p-value)', text='Variabile' if show_labels else None,
+                         hover_data=['Variabile'], size=size, size_max=15)
         # Aggiungi linea verticale
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
         # Aggiungi annotazioni per le classi
@@ -58,6 +65,7 @@ def main():
         fold_change_threshold = st.number_input('Inserisci il valore soglia per il Log2FoldChange', value=0.0)
         p_value_threshold = st.number_input('Inserisci il valore soglia per il -log10(p-value)', value=0.05)
         show_labels = st.checkbox("Mostra etichette delle variabili", value=True)  # Checkbox per visualizzare/nascondere le etichette
+        size_by_media = st.checkbox("Dimensiona punti per media", value=False)  # Nuova opzione per dimensionare i punti
         submit_button = st.form_submit_button(label='Applica Filtri')
 
     if file is not None and submit_button:
@@ -65,24 +73,16 @@ def main():
         if dati is not None:
             dati_preparati = prepara_dati(dati, classi, fold_change_threshold, p_value_threshold)
             if dati_preparati is not None:
-                fig = crea_volcano_plot(dati_preparati, classi, show_labels)
+                fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media)
                 if fig is not None:
                     st.plotly_chart(fig)
-                    # Funzionalità di download
-                    excel_file = salva_excel(dati_preparati)
-                    st.download_button(
-                        label="Salva come Excel",
-                        data=excel_file,
-                        file_name="dati_significativi.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
                 else:
                     st.error("Il grafico non contiene dati da visualizzare.")
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
             st.error("Dati non caricati correttamente.")
-            
+
 # Funzione per salvare i dati significativi in un file Excel
 def salva_excel(dati):
     output = BytesIO()
@@ -90,6 +90,6 @@ def salva_excel(dati):
         dati.to_excel(writer, index=False)
     output.seek(0)
     return output
-    
+
 if __name__ == "__main__":
     main()
