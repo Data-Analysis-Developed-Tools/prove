@@ -1,0 +1,21 @@
+!pip install pandas
+import pandas as pd
+
+# Modifica il percorso del file con il percorso effettivo dove è memorizzato il tuo file .mea
+percorso_file = '/path/to/your/file.mea'
+dati = pd.read_csv(percorso_file, delimiter='\t')  # Assumendo che i dati siano separati da tabulazioni
+print(dati.head())  # Stampa le prime righe per verificare la correttezza dei dati caricati
+# Calcolo di statistiche di base
+print(dati.describe())
+
+# Filtraggio basato su una condizione
+dati_filtrati = dati[dati['nome_colonna'] > valore_soglia]
+print(dati_filtrati)
+!pip install matplotlib
+import matplotlib.pyplot as plt
+
+dati['nome_colonna'].plot(kind='line')
+plt.title('Titolo del Grafico')
+plt.xlabel('Etichetta Asse X')
+plt.ylabel('Etichetta Asse Y')
+plt.show()
