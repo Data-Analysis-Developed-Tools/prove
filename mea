@@ -1,21 +1,47 @@
-!pip install pandas
-import pandas as pd
+# Installazione delle librerie necessarie
+!pip install pandas matplotlib
 
-# Modifica il percorso del file con il percorso effettivo dove è memorizzato il tuo file .mea
-percorso_file = '/path/to/your/file.mea'
-dati = pd.read_csv(percorso_file, delimiter='\t')  # Assumendo che i dati siano separati da tabulazioni
-print(dati.head())  # Stampa le prime righe per verificare la correttezza dei dati caricati
-# Calcolo di statistiche di base
+import pandas as pd
+import matplotlib.pyplot as plt
+from google.colab import files
+
+# Caricamento del file dal PC
+uploaded = files.upload()
+
+# Ottenere il nome del file caricato
+file_name = list(uploaded.keys())[0]
+
+# Caricamento del file .mea (assumendo che sia separato da tabulazioni '\t')
+dati = pd.read_csv(file_name, delimiter='\t')
+
+# Mostrare le prime righe del file per verifica
+print("Prime righe del file caricato:")
+print(dati.head())
+
+# Calcolo delle statistiche di base
+print("\nStatistiche descrittive:")
 print(dati.describe())
 
-# Filtraggio basato su una condizione
-dati_filtrati = dati[dati['nome_colonna'] > valore_soglia]
-print(dati_filtrati)
-!pip install matplotlib
-import matplotlib.pyplot as plt
+# Sostituisci 'nome_colonna' con il nome effettivo della colonna e 'valore_soglia' con un valore numerico
+nome_colonna = 'nome_colonna'  # Modifica con il nome effettivo della colonna
+valore_soglia = 10  # Sostituisci con il valore soglia desiderato
 
-dati['nome_colonna'].plot(kind='line')
-plt.title('Titolo del Grafico')
-plt.xlabel('Etichetta Asse X')
-plt.ylabel('Etichetta Asse Y')
-plt.show()
+if nome_colonna in dati.columns:
+    dati_filtrati = dati[dati[nome_colonna] > valore_soglia]
+    print("\nDati filtrati:")
+    print(dati_filtrati)
+else:
+    print(f"\nLa colonna '{nome_colonna}' non esiste nel file.")
+
+# Creazione del grafico (modifica 'nome_colonna' con la colonna appropriata)
+if nome_colonna in dati.columns:
+    plt.figure(figsize=(10, 5))
+    dati[nome_colonna].plot(kind='line')
+    plt.title('Titolo del Grafico')
+    plt.xlabel('Etichetta Asse X')
+    plt.ylabel('Etichetta Asse Y')
+    plt.grid(True)
+    plt.show()
+else:
+    print(f"Impossibile generare il grafico: la colonna '{nome_colonna}' non esiste nel dataset.")
+
