@@ -4,6 +4,8 @@ import plotly.express as px
 from scipy.stats import ttest_ind
 import numpy as np
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 # Funzione per caricare i dati
 def carica_dati(file):
@@ -49,8 +51,8 @@ def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, 
                          color_continuous_scale='RdYlBu_r',
                          size_max=50)
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
-        fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
-        fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
+        fig.add_annotation(x=dati['Log2FoldChange'].min(), y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16), xanchor='left', align='left')
+        fig.add_annotation(x=dati['Log2FoldChange'].max(), y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16), xanchor='right', align='right')
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
         return fig
     else:
@@ -79,9 +81,6 @@ def main():
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance)
                 st.plotly_chart(fig)
-                # Visualizza i dati sotto il grafico in forma di tabella interattiva
-                st.write("Dati visibili attualmente nel grafico:")
-                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {"#FF0000" if x > 0 else "#0000FF" if x < 0 else "#FFFFFF"}', subset=['-log10(p-value) x Log2FoldChange']))
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
