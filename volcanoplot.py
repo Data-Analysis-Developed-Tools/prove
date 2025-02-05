@@ -51,26 +51,8 @@ def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, 
                          color_continuous_scale='RdYlBu_r',
                          size_max=50)
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
-       fig.add_annotation(
-    x=dati['Log2FoldChange'].min(), 
-    y=dati['-log10(p-value)'].max()*1.05, 
-    text=f"Over-expression in {classi[1]}", 
-    showarrow=False, 
-    font=dict(color="red", size=16), 
-    xanchor='left', 
-    align='left'
-)
-
-fig.add_annotation(
-    x=dati['Log2FoldChange'].max(), 
-    y=dati['-log10(p-value)'].max()*1.05, 
-    text=f"Over-expression in {classi[0]}", 
-    showarrow=False, 
-    font=dict(color="green", size=16), 
-    xanchor='right', 
-    align='right'
-)
-
+        fig.add_annotation(x=dati['Log2FoldChange'].min(), y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16), xanchor='left', align='left')
+        fig.add_annotation(x=dati['Log2FoldChange'].max(), y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16), xanchor='right', align='right')
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
         return fig
     else:
@@ -99,13 +81,6 @@ def main():
             if dati_preparati is not None:
                 fig = crea_volcano_plot(dati_preparati, classi, show_labels, size_by_media, color_by_media, point_size_scale, point_size_variance)
                 st.plotly_chart(fig)
-                # Display data under the chart in an interactive table
-                st.write("Dati visibili attualmente nel grafico:")
-                norm = mcolors.TwoSlopeNorm(vmin=dati_preparati['-log10(p-value) x Log2FoldChange'].min(), vcenter=0, vmax=dati_preparati['-log10(p-value) x Log2FoldChange'].max())
-                colormap = plt.cm.coolwarm
-                st.dataframe(dati_preparati.style.applymap(lambda x: f'background-color: {mcolors.to_hex(colormap(norm(x)))}', subset=['-log10(p-value) x Log2FoldChange']))
-                st.write(f"Variabili con valori bassi ('{classi[1]}') corrispondono a sopra-espressione in {classi[1]}")
-                st.write(f"Variabili con valori alti ('{classi[0]}') corrispondono a sopra-espressione in {classi[0]}")
             else:
                 st.error("Nessun dato preparato per il grafico.")
         else:
