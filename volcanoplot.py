@@ -51,8 +51,26 @@ def crea_volcano_plot(dati, classi, show_labels, size_by_media, color_by_media, 
                          color_continuous_scale='RdYlBu_r',
                          size_max=50)
         fig.add_trace(go.Scatter(x=[0, 0], y=[0, dati['-log10(p-value)'].max()], mode='lines', line=dict(color='orange', width=2)))
-        fig.add_annotation(x=-2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[1]}", showarrow=False, font=dict(color="red", size=16))
-        fig.add_annotation(x=2, y=dati['-log10(p-value)'].max()*1.05, text=f"Over-expression in {classi[0]}", showarrow=False, font=dict(color="green", size=16))
+       fig.add_annotation(
+    x=dati['Log2FoldChange'].min(), 
+    y=dati['-log10(p-value)'].max()*1.05, 
+    text=f"Over-expression in {classi[1]}", 
+    showarrow=False, 
+    font=dict(color="red", size=16), 
+    xanchor='left', 
+    align='left'
+)
+
+fig.add_annotation(
+    x=dati['Log2FoldChange'].max(), 
+    y=dati['-log10(p-value)'].max()*1.05, 
+    text=f"Over-expression in {classi[0]}", 
+    showarrow=False, 
+    font=dict(color="green", size=16), 
+    xanchor='right', 
+    align='right'
+)
+
         fig.update_layout(title='Volcano Plot', xaxis_title='Log2FoldChange', yaxis_title='-log10(p-value)')
         return fig
     else:
