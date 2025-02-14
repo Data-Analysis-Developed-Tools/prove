@@ -1,5 +1,5 @@
 streamlit
-gc-ims-tools
+gcims
 matplotlib
 pandas
 numpy
