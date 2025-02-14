@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-from gc-ims-tools import MeaMeasurement  # Importa il pacchetto per leggere i .MEA
+from gcims import MeaMeasurement  # Importa il pacchetto per leggere i .MEA
 
 def load_mea_file(file):
     """
