@@ -17,6 +17,14 @@ st.write("Carica un file .mea e visualizza la sua rappresentazione con colorazio
 uploaded_file = st.file_uploader("Carica il tuo file .MEA", type=["mea"])
 
 if uploaded_file is not None:
+    st.success("File caricato con successo!")
+    st.write(f"Dimensione del file: {uploaded_file.size} byte")
+
+    # Debug: stampa i primi byte del file
+    file_bytes = uploaded_file.read(100)  # Legge i primi 100 byte
+    st.write("Primi 100 byte del file:", file_bytes)
+
+if uploaded_file is not None:
     st.success("File caricato con successo! Generando immagine...")
 
     # Processa il file e ottiene i dati
