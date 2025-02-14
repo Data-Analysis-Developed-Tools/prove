@@ -12,30 +12,38 @@ def extract_gcims_data(file_bytes):
     lines = file_text.splitlines()
 
     metadata = {}
-    binary_start = 0
+    binary_start = None
 
     # 🔍 **Separazione metadati e dati binari**
     for i, line in enumerate(lines):
         if "=" in line:  # Cerca le linee con formato "chiave = valore"
             key, value = map(str.strip, line.split("=", 1))
             metadata[key] = value
-        else:
-            binary_start = i
-            break  # Quando i metadati finiscono, inizia la parte binaria
+        elif binary_start is None and not line.strip():  
+            # Trova la prima riga vuota (di solito separa i metadati dai dati binari)
+            binary_start = i + 1
+            break  
+
+    if binary_start is None:
+        st.error("❌ Errore: impossibile identificare l'inizio dei dati binari.")
+        return metadata, None
 
     # 📌 **Estrazione dati binari**
-    binary_data = np.frombuffer(file_bytes[binary_start:], dtype=np.float32)  # I dati GC-IMS sono tipicamente float32
+    try:
+        binary_data = np.frombuffer(file_bytes[binary_start:], dtype=np.float32)  
+    except ValueError:
+        st.error("❌ Errore: i dati binari non sono nel formato corretto.")
+        return metadata, None
 
     # 🔎 **Verifica della lunghezza dei dati**
     st.write(f"📊 Dimensione dati binari: {len(binary_data)} valori numerici")
 
     # 📏 **Definizione delle dimensioni della matrice GC-IMS**
-    # La matrice è tipicamente di 200x200, 256x256 o 512x512 in base alla risoluzione dello strumento
     size = int(np.sqrt(len(binary_data)))  
     if size * size != len(binary_data):
         st.warning("⚠️ I dati binari non formano una matrice quadrata perfetta, potrebbero essere troncati.")
     
-    matrix_data = binary_data[:size**2].reshape((size, size))  # Converte in matrice 2D
+    matrix_data = binary_data[:size**2].reshape((size, size))  
 
     return metadata, matrix_data
 
@@ -44,7 +52,7 @@ def generate_image_from_gcims(matrix_data):
     Genera una heatmap dai dati GC-IMS con colormap Inferno.
     """
     fig, ax = plt.subplots(figsize=(8, 6))
-    im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  # "lower" allinea gli assi RT-DT
+    im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
     plt.colorbar(im, ax=ax, label="Intensità del Segnale")
     plt.xlabel("Tempo di Ritenzione (RT)")
     plt.ylabel("Tempo di Deriva (DT)")
