@@ -36,14 +36,17 @@ def extract_gcims_data(file_bytes):
         return metadata, None
 
     # 🔎 **Verifica della lunghezza dei dati**
-    st.write(f"📊 Dimensione dati binari: {len(binary_data)} valori numerici")
+    st.write(f"📊 Dimensione totale dei dati binari: {len(binary_data)} valori numerici")
 
-    # 📏 **Definizione delle dimensioni della matrice GC-IMS**
-    size = int(np.sqrt(len(binary_data)))  
-    if size * size != len(binary_data):
-        st.warning("⚠️ I dati binari non formano una matrice quadrata perfetta, potrebbero essere troncati.")
-    
-    matrix_data = binary_data[:size**2].reshape((size, size))  
+    # 📏 **Ricostruzione dinamica della matrice**
+    # Il numero di righe è estratto dai metadati o ipotizzato
+    num_rows = int(metadata.get("Numero_righe", 200))  # Modifica se conosci il numero esatto
+    num_cols = len(binary_data) // num_rows  # Calcola il numero di colonne dinamicamente
+
+    if num_rows * num_cols != len(binary_data):
+        st.warning(f"⚠️ I dati non riempiono perfettamente una matrice di {num_rows}x{num_cols}. Alcuni dati potrebbero essere troncati.")
+
+    matrix_data = binary_data[:num_rows * num_cols].reshape((num_rows, num_cols))  
 
     return metadata, matrix_data
 
@@ -51,7 +54,7 @@ def generate_image_from_gcims(matrix_data):
     """
     Genera una heatmap dai dati GC-IMS con colormap Inferno.
     """
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
     im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
     plt.colorbar(im, ax=ax, label="Intensità del Segnale")
     plt.xlabel("Tempo di Ritenzione (RT)")
