@@ -1,6 +1,7 @@
 import streamlit as st
 from PIL import Image
 from streamlit_drawable_canvas import st_canvas
+import numpy as np
 import io
 
 # Titolo dell'app
@@ -14,25 +15,23 @@ if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Immagine Caricata", use_column_width=True)
 
-    # Converti l'immagine in un oggetto BytesIO per generare un URL
-    img_bytes = io.BytesIO()
-    image.save(img_bytes, format="PNG")
-    img_bytes.seek(0)
+    # Converto l'immagine in NumPy per usarla come sfondo
+    image_np = np.array(image)
 
-    # Creazione dell'URL per l'immagine di sfondo
-    img_url = st.image(image).image_to_url(img_bytes)
-
-    # Creazione della canvas interattiva
+    # Creazione della canvas interattiva senza usare background_image
     canvas_result = st_canvas(
         fill_color="rgba(255, 165, 0, 0.3)",  # Colore di riempimento con opacità
         stroke_width=3,
         stroke_color="#FF0000",
-        background_image_url=img_url,  # Usa l'URL generato invece di passare direttamente l'immagine
-        height=image.height,
-        width=image.width,
+        background_color="#FFFFFF",  # Sfondo bianco per evitare errori
+        height=image_np.shape[0],  # Altezza dell'immagine
+        width=image_np.shape[1],   # Larghezza dell'immagine
         drawing_mode="rect",
         key="canvas"
     )
+
+    # Mostro nuovamente l'immagine sotto la canvas
+    st.image(image, caption="Immagine di riferimento", use_column_width=True)
 
     # Quando l'utente ha disegnato un rettangolo
     if canvas_result.json_data is not None:
