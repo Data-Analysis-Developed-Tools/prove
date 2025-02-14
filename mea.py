@@ -1,80 +1,37 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+from gcims import MeaMeasurement  # Importa il pacchetto per leggere i .MEA
 
-def extract_gcims_data(file_bytes):
+def load_mea_file(file):
     """
-    Estrae i metadati e i dati binari da un file .MEA relativo a GC-IMS.
-    - I metadati contengono informazioni sperimentali.
-    - I dati binari vengono estratti e convertiti correttamente, senza tagli o troncamenti.
+    Carica il file .MEA utilizzando gc-ims-tools e restituisce la matrice GC-IMS.
     """
-    file_text = file_bytes.decode("utf-8", errors="ignore")  
-    lines = file_text.splitlines()
+    with open(file, "rb") as f:
+        mea = MeaMeasurement(f)  # Carica il file .MEA correttamente
 
-    metadata = {}
-    binary_start = None
+    # Ottiene la matrice di intensità (RT x DT)
+    intensity_matrix = mea.intensity
+    rt_values = mea.rt_values  # Tempo di ritenzione (asse Y)
+    dt_values = mea.dt_values  # Tempo di deriva (asse X)
 
-    # 🔍 **Separazione metadati e dati binari**
-    for i, line in enumerate(lines):
-        if "=" in line:  
-            key, value = map(str.strip, line.split("=", 1))
-            metadata[key] = value
-        elif binary_start is None and not line.strip():  
-            binary_start = i + 1  
-            break  
+    return intensity_matrix, rt_values, dt_values
 
-    if binary_start is None:
-        st.error("❌ Errore: impossibile identificare l'inizio dei dati binari.")
-        return metadata, None
-
-    # 📌 **Estrazione dati binari senza ipotesi di formato**
-    raw_data = file_bytes[binary_start:].strip()
-    
-    # **Provo prima float32, poi int16**
-    try:
-        binary_data = np.frombuffer(raw_data, dtype=np.float32)
-    except ValueError:
-        try:
-            binary_data = np.frombuffer(raw_data, dtype=np.int16)
-        except ValueError:
-            st.error("❌ Errore: impossibile leggere i dati binari in float32 o int16.")
-            return metadata, None
-
-    # 🔎 **Analisi della distribuzione dei dati**
-    data_min, data_max, data_mean = np.min(binary_data), np.max(binary_data), np.mean(binary_data)
-    st.write(f"📊 Dati GC-IMS: Min={data_min}, Max={data_max}, Media={data_mean}")
-
-    # **Gestione valori estremi e normalizzazione**
-    binary_data = np.clip(binary_data, np.percentile(binary_data, 1), np.percentile(binary_data, 99))  
-
-    # 📏 **Determinazione dinamica della forma della matrice**
-    possible_shapes = [(x, len(binary_data) // x) for x in range(10, 1000) if len(binary_data) % x == 0]
-
-    if not possible_shapes:
-        st.error("❌ Impossibile trovare una forma valida per la matrice GC-IMS.")
-        return metadata, None
-
-    best_shape = min(possible_shapes, key=lambda s: abs(s[0] - s[1]))
-    matrix_data = binary_data.reshape(best_shape)
-
-    return metadata, matrix_data
-
-def generate_image_from_gcims(matrix_data, gamma):
+def plot_gcims_image(intensity_matrix, rt_values, dt_values, gamma):
     """
-    Genera una heatmap dai dati GC-IMS con colormap Inferno.
-    - Il contrasto è regolato con una trasformazione gamma adattiva.
+    Genera l'immagine GC-IMS con colormap Inferno e regolazione del contrasto.
     """
-    matrix_data = matrix_data - np.min(matrix_data)  # Rende tutti i valori positivi
-    matrix_data /= np.max(matrix_data)  # Normalizza tra 0 e 1
-
-    # **Regolazione del contrasto con correzione gamma**
-    matrix_data = matrix_data ** gamma  
+    # Normalizzazione dei dati per il miglior contrasto
+    matrix = intensity_matrix - np.min(intensity_matrix)
+    matrix /= np.max(matrix)  # Porta i valori tra 0 e 1
+    matrix = matrix ** gamma  # Correzione gamma per regolare il contrasto
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
-    plt.colorbar(im, ax=ax, label="Intensità del Segnale (Log-Scaled)")
-    plt.ylabel("Tempo di Ritenzione (RT)")  
-    plt.xlabel("Tempo di Deriva (DT)")      
+    im = ax.imshow(matrix, cmap="inferno", aspect="auto", origin="lower",
+                   extent=[dt_values[0], dt_values[-1], rt_values[0], rt_values[-1]])
+    plt.colorbar(im, ax=ax, label="Intensità del Segnale")
+    plt.ylabel("Tempo di Ritenzione (RT) [s]")  
+    plt.xlabel("Tempo di Deriva (DT) [ms]")      
     plt.title("Mappa GC-IMS (RT vs DT) - Regolabile")
 
     return fig
@@ -89,26 +46,22 @@ uploaded_file = st.file_uploader("Carica il tuo file .MEA", type=["mea"])
 if uploaded_file is not None:
     st.success("✅ File caricato con successo!")
 
-    # 📌 **Lettura del file e separazione dei metadati dai dati binari**
-    file_bytes = uploaded_file.read()
-    metadata, matrix_data = extract_gcims_data(file_bytes)
+    # 📌 **Lettura del file con gc-ims-tools**
+    try:
+        intensity_matrix, rt_values, dt_values = load_mea_file(uploaded_file)
 
-    # 🎚 **Cursore per regolazione del contrasto (Gamma Correction)**
-    gamma_value = st.slider(
-        "Regola il contrasto dell'immagine (gamma)", 
-        min_value=0.1, max_value=3.0, value=1.0, step=0.1, format="%.1f"
-    )
+        # 🎚 **Cursore per regolazione contrasto (Gamma Correction)**
+        gamma_value = st.slider(
+            "Regola il contrasto dell'immagine (gamma)", 
+            min_value=0.1, max_value=3.0, value=1.0, step=0.1, format="%.1f"
+        )
 
-    # 📝 **Mostra i metadati**
-    with st.expander("📄 Mostra Metadati"):
-        st.json(metadata)
-
-    # 🎨 **Generazione dell'immagine GC-IMS**
-    if matrix_data is not None:
+        # 🎨 **Generazione dell'immagine GC-IMS**
         st.write("🔍 Generando immagine GC-IMS con regolazione contrasto...")
-        image_fig = generate_image_from_gcims(matrix_data, gamma_value)
+        image_fig = plot_gcims_image(intensity_matrix, rt_values, dt_values, gamma_value)
 
         # 🖼 **Mostra l'immagine generata**
         st.pyplot(image_fig)
-    else:
-        st.error("❌ Errore nella generazione dell'immagine. I dati binari non sono validi.")
+
+    except Exception as e:
+        st.error(f"❌ Errore durante la lettura del file .MEA: {e}")
