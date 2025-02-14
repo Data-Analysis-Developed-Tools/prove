@@ -4,7 +4,6 @@ import pandas as pd
 from PIL import Image
 import os
 import streamlit as st
-import ace_tools as tools  # Per visualizzare la tabella su Streamlit
 
 # Caricare l'immagine
 image_path = "/mnt/data/image.png"
@@ -51,4 +50,5 @@ for i, contour in enumerate(contours):
 df_colormap = pd.DataFrame(data, columns=["Immagine", "X Inizio", "X Fine", "Y Inizio", "Y Fine", "X Max Intensità", "Y Max Intensità"])
 
 # Visualizzare la tabella aggiornata su Streamlit
-tools.display_dataframe_to_user(name="Blob Identificati con Scala Cromatica", dataframe=df_colormap)
+st.subheader("Blob Identificati con Scala Cromatica")
+st.dataframe(df_colormap)
