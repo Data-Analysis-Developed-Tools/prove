@@ -16,11 +16,11 @@ def extract_gcims_data(file_bytes):
 
     # 🔍 **Separazione metadati e dati binari**
     for i, line in enumerate(lines):
-        if "=" in line:  # Cerca le linee con formato "chiave = valore"
+        if "=" in line:  
             key, value = map(str.strip, line.split("=", 1))
             metadata[key] = value
         elif binary_start is None and not line.strip():  
-            binary_start = i + 1  # Trova la prima riga vuota (separatore dati)
+            binary_start = i + 1  
             break  
 
     if binary_start is None:
@@ -44,6 +44,9 @@ def extract_gcims_data(file_bytes):
     data_min, data_max, data_mean = np.min(binary_data), np.max(binary_data), np.mean(binary_data)
     st.write(f"📊 Dati GC-IMS: Min={data_min}, Max={data_max}, Media={data_mean}")
 
+    # **Gestione valori estremi e normalizzazione**
+    binary_data = np.clip(binary_data, np.percentile(binary_data, 1), np.percentile(binary_data, 99))  
+
     # 📏 **Determinazione dinamica della forma della matrice**
     possible_shapes = [(x, len(binary_data) // x) for x in range(10, 1000) if len(binary_data) % x == 0]
 
@@ -51,25 +54,25 @@ def extract_gcims_data(file_bytes):
         st.error("❌ Impossibile trovare una forma valida per la matrice GC-IMS.")
         return metadata, None
 
-    # Sceglie la forma più vicina a una matrice "rettangolare"
     best_shape = min(possible_shapes, key=lambda s: abs(s[0] - s[1]))
-
-    # Reshape senza forzare dimensioni arbitrarie
     matrix_data = binary_data.reshape(best_shape)
 
     return metadata, matrix_data
 
-def generate_image_from_gcims(matrix_data, scale_factor):
+def generate_image_from_gcims(matrix_data, gamma):
     """
     Genera una heatmap dai dati GC-IMS con colormap Inferno.
-    Il contrasto può essere regolato con un fattore di scala.
+    - Il contrasto è regolato con una trasformazione gamma adattiva.
     """
-    # Normalizzazione dei dati per migliorarne la visualizzazione
-    matrix_data_scaled = np.log1p(np.abs(matrix_data) * scale_factor)
+    matrix_data = matrix_data - np.min(matrix_data)  # Rende tutti i valori positivi
+    matrix_data /= np.max(matrix_data)  # Normalizza tra 0 e 1
+
+    # **Regolazione del contrasto con correzione gamma**
+    matrix_data = matrix_data ** gamma  
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    im = ax.imshow(matrix_data_scaled, cmap="inferno", aspect="auto", origin="lower")  
-    plt.colorbar(im, ax=ax, label="Intensità del Segnale (Log-Scaled)")
+    im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
+    plt.colorbar(im, ax=ax, label="Intensità del Segnale")
     plt.ylabel("Tempo di Ritenzione (RT)")  
     plt.xlabel("Tempo di Deriva (DT)")      
     plt.title("Mappa GC-IMS (RT vs DT) - Regolabile")
@@ -90,10 +93,10 @@ if uploaded_file is not None:
     file_bytes = uploaded_file.read()
     metadata, matrix_data = extract_gcims_data(file_bytes)
 
-    # 🎚 **Aggiunta di un cursore per regolare il contrasto**
-    scale_factor = st.slider(
-        "Regola la scala della colorazione (varianza)", 
-        min_value=0.01, max_value=1000.0, value=1.0, step=0.1, format="%.2f"
+    # 🎚 **Cursore per regolazione del contrasto (Gamma Correction)**
+    gamma_value = st.slider(
+        "Regola il contrasto dell'immagine (gamma)", 
+        min_value=0.1, max_value=3.0, value=1.0, step=0.1, format="%.1f"
     )
 
     # 📝 **Mostra i metadati**
@@ -102,8 +105,8 @@ if uploaded_file is not None:
 
     # 🎨 **Generazione dell'immagine GC-IMS**
     if matrix_data is not None:
-        st.write("🔍 Generando immagine GC-IMS con contrasto regolabile...")
-        image_fig = generate_image_from_gcims(matrix_data, scale_factor)
+        st.write("🔍 Generando immagine GC-IMS con regolazione contrasto...")
+        image_fig = generate_image_from_gcims(matrix_data, gamma_value)
 
         # 🖼 **Mostra l'immagine generata**
         st.pyplot(image_fig)
