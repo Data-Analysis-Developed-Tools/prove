@@ -1,8 +1,11 @@
 streamlit
+opencv-python-headless
+streamlit-drawable-canvas
+numpy
+pillow
 git+https://github.com/Charisma-Mannheim/gc-ims-tools.git
 matplotlib
 pandas
-numpy
 scipy
 openpyxl
 plotly
