@@ -1,6 +1,5 @@
 streamlit
 git+https://github.com/Charisma-Mannheim/gc-ims-tools.git
-gcims
 matplotlib
 pandas
 numpy
@@ -10,4 +9,3 @@ plotly
 kaleido
 xlsxwriter
 seaborn
-setuptools
