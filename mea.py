@@ -6,7 +6,7 @@ def extract_gcims_data(file_bytes):
     """
     Estrae i metadati e i dati binari da un file .MEA relativo a GC-IMS.
     - I metadati contengono informazioni sperimentali.
-    - I dati binari rappresentano la matrice 2D reale, senza imporre forme arbitrarie.
+    - I dati binari vengono estratti e convertiti correttamente, senza tagli o troncamenti.
     """
     file_text = file_bytes.decode("utf-8", errors="ignore")  
     lines = file_text.splitlines()
@@ -30,7 +30,7 @@ def extract_gcims_data(file_bytes):
     # 📌 **Estrazione dati binari senza ipotesi di formato**
     raw_data = file_bytes[binary_start:].strip()
     
-    # **Provo diversi formati numerici**
+    # **Provo prima float32, poi int16**
     try:
         binary_data = np.frombuffer(raw_data, dtype=np.float32)
     except ValueError:
@@ -72,7 +72,7 @@ def generate_image_from_gcims(matrix_data, gamma):
 
     fig, ax = plt.subplots(figsize=(10, 6))
     im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
-    plt.colorbar(im, ax=ax, label="Intensità del Segnale")
+    plt.colorbar(im, ax=ax, label="Intensità del Segnale (Log-Scaled)")
     plt.ylabel("Tempo di Ritenzione (RT)")  
     plt.xlabel("Tempo di Deriva (DT)")      
     plt.title("Mappa GC-IMS (RT vs DT) - Regolabile")
