@@ -15,10 +15,6 @@ if uploaded_file:
     # Apertura dell'immagine con PIL
     image = Image.open(uploaded_file)
 
-    # Mostra l'immagine caricata
-    st.subheader("Immagine Originale")
-    st.image(image, use_container_width=True)  # Modifica qui
-
     # Interfaccia di cropping manuale
     st.subheader("Seleziona l'area da ritagliare")
     cropped_image = st_cropper(image, box_color='red', aspect_ratio=None)
@@ -26,7 +22,7 @@ if uploaded_file:
     # Mostra l'immagine ritagliata
     if cropped_image:
         st.subheader("Immagine Ritagliata")
-        st.image(cropped_image, use_container_width=True)  # Modifica qui
+        st.image(cropped_image, use_container_width=True)
 
         # Pulsante di download
         buf = io.BytesIO()
