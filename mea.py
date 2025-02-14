@@ -2,39 +2,69 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 
-def process_mea_file(file):
-    """Legge il file .mea e lo converte in una matrice di dati numerici."""
-    raw_data = np.frombuffer(file.read(), dtype=np.uint8)  # Legge il file come dati binari
-    size = int(np.sqrt(len(raw_data)))  # Calcola la dimensione per una matrice quadrata approssimata
-    matrix_data = raw_data[:size**2].reshape((size, size))  # Converte in matrice 2D
-    return matrix_data
+def extract_metadata_and_data(file_bytes):
+    """
+    Estrae i metadati e i dati binari dal file .mea.
+    - I metadati sono identificati come stringhe leggibili all'inizio del file.
+    - I dati binari vengono separati per la generazione dell'immagine.
+    """
+    file_text = file_bytes.decode("utf-8", errors="ignore")  # Decodifica il file in UTF-8 ignorando errori
+    lines = file_text.splitlines()
 
-# Interfaccia Streamlit
+    metadata = {}
+    binary_start = 0
+
+    # Estrazione dei metadati
+    for i, line in enumerate(lines):
+        if "=" in line:  # Cerca le linee formattate come metadati (chiave = valore)
+            key, value = map(str.strip, line.split("=", 1))
+            metadata[key] = value
+        else:
+            binary_start = i
+            break  # Quando incontriamo la prima riga non leggibile, passiamo ai dati binari
+
+    # Estrazione dei dati binari effettivi
+    binary_data = np.frombuffer(file_bytes[binary_start:], dtype=np.uint8)
+
+    return metadata, binary_data
+
+def generate_image_from_data(binary_data):
+    """
+    Converte i dati binari in una bitmap e li visualizza con colormap Inferno.
+    """
+    # Determina la dimensione della matrice per visualizzare l'immagine
+    size = int(np.sqrt(len(binary_data)))  # Calcolo della dimensione della matrice quadrata
+    matrix_data = binary_data[:size**2].reshape((size, size))  # Conversione in matrice 2D
+
+    # Creazione della figura con colormap inferno
+    fig, ax = plt.subplots(figsize=(8, 8))
+    im = ax.imshow(matrix_data, cmap="inferno", aspect="auto")
+    plt.colorbar(im, ax=ax, label="Intensità del Segnale")
+    plt.title("Bitmap del File .MEA")
+
+    return fig
+
+# 🏠 **Interfaccia Streamlit**
 st.title("Visualizzazione File .MEA")
-st.write("Carica un file .mea e visualizza la sua rappresentazione con colorazione virtuale.")
+st.write("Carica un file .MEA per visualizzarne i dati in un'immagine.")
 
-# Pulsante per il caricamento del file
+# 📂 **Caricamento File**
 uploaded_file = st.file_uploader("Carica il tuo file .MEA", type=["mea"])
 
 if uploaded_file is not None:
-    st.success("File caricato con successo!")
-    st.write(f"Dimensione del file: {uploaded_file.size} byte")
+    st.success("✅ File caricato con successo!")
 
-    # Debug: stampa i primi byte del file
-    file_bytes = uploaded_file.read(100)  # Legge i primi 100 byte
-    st.write("Primi 100 byte del file:", file_bytes)
+    # 📌 **Lettura del file e separazione dei metadati dai dati binari**
+    file_bytes = uploaded_file.read()
+    metadata, binary_data = extract_metadata_and_data(file_bytes)
 
-if uploaded_file is not None:
-    st.success("File caricato con successo! Generando immagine...")
+    # 📝 **Mostra i metadati**
+    with st.expander("📄 Mostra Metadati"):
+        st.json(metadata)
 
-    # Processa il file e ottiene i dati
-    data_matrix = process_mea_file(uploaded_file)
+    # 🎨 **Generazione dell'immagine**
+    st.write("🔍 Generando immagine dalla bitmap...")
+    image_fig = generate_image_from_data(binary_data)
 
-    # Genera la visualizzazione con colorazione inferno
-    fig, ax = plt.subplots(figsize=(8, 8))
-    im = ax.imshow(data_matrix, cmap="inferno", aspect="auto")
-    plt.colorbar(im, ax=ax, label="Intensità del Segnale")
-    plt.title("Mappa di Colorazione Virtuale")
-
-    # Mostra l'immagine in Streamlit
-    st.pyplot(fig)
+    # 🖼 **Mostra l'immagine generata**
+    st.pyplot(image_fig)
