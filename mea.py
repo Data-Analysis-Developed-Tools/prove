@@ -8,7 +8,7 @@ def extract_gcims_data(file_bytes):
     - I metadati contengono informazioni sperimentali.
     - I dati binari rappresentano la matrice 2D (Tempo di Ritenzione x Tempo di Deriva).
     """
-    file_text = file_bytes.decode("utf-8", errors="ignore")  # Decodifica il file come testo ignorando errori
+    file_text = file_bytes.decode("utf-8", errors="ignore")  
     lines = file_text.splitlines()
 
     metadata = {}
@@ -20,32 +20,41 @@ def extract_gcims_data(file_bytes):
             key, value = map(str.strip, line.split("=", 1))
             metadata[key] = value
         elif binary_start is None and not line.strip():  
-            # Trova la prima riga vuota (di solito separa i metadati dai dati binari)
-            binary_start = i + 1
+            binary_start = i + 1  # Trova la prima riga vuota (separatore dati)
             break  
 
     if binary_start is None:
         st.error("❌ Errore: impossibile identificare l'inizio dei dati binari.")
         return metadata, None
 
-    # 📌 **Estrazione dati binari**
-    try:
-        binary_data = np.frombuffer(file_bytes[binary_start:], dtype=np.float32)  
-    except ValueError:
-        st.error("❌ Errore: i dati binari non sono nel formato corretto.")
-        return metadata, None
+    # 📌 **Estrazione dati binari con gestione flessibile**
+    raw_data = file_bytes[binary_start:].strip()
 
-    # 🔎 **Verifica della lunghezza dei dati**
-    st.write(f"📊 Dimensione totale dei dati binari: {len(binary_data)} valori numerici")
+    # Provo prima a leggere i dati come uint8
+    binary_data_uint8 = np.frombuffer(raw_data, dtype=np.uint8)
+    
+    # Se il numero di valori è pari, provo a convertirli in int16 (dati a 16 bit)
+    if len(binary_data_uint8) % 2 == 0:
+        binary_data_int16 = binary_data_uint8.view(np.int16)
+    else:
+        st.warning("⚠️ I dati non hanno una lunghezza pari, impossibile convertirli in int16.")
+        binary_data_int16 = binary_data_uint8  # Resta in uint8 se non possiamo convertirli
+
+    # 🔎 **Analisi della distribuzione dei valori**
+    data_min = np.min(binary_data_int16)
+    data_max = np.max(binary_data_int16)
+    data_mean = np.mean(binary_data_int16)
+
+    st.write(f"📊 Valori dei dati GC-IMS: Min={data_min}, Max={data_max}, Media={data_mean}")
 
     # 📏 **Ricostruzione dinamica della matrice**
-    num_rows = int(metadata.get("Numero_righe", 200))  # Modifica se conosci il numero esatto
-    num_cols = len(binary_data) // num_rows  
+    num_rows = int(metadata.get("Numero_righe", 200))  # Prova a leggere dalle info, altrimenti default 200
+    num_cols = len(binary_data_int16) // num_rows  
 
-    if num_rows * num_cols != len(binary_data):
+    if num_rows * num_cols != len(binary_data_int16):
         st.warning(f"⚠️ I dati non riempiono perfettamente una matrice di {num_rows}x{num_cols}. Alcuni dati potrebbero essere troncati.")
 
-    matrix_data = binary_data[:num_rows * num_cols].reshape((num_rows, num_cols))  
+    matrix_data = binary_data_int16[:num_rows * num_cols].reshape((num_rows, num_cols))  
 
     return metadata, matrix_data
 
@@ -59,8 +68,8 @@ def generate_image_from_gcims(matrix_data):
     fig, ax = plt.subplots(figsize=(10, 6))
     im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
     plt.colorbar(im, ax=ax, label="Intensità del Segnale")
-    plt.ylabel("Tempo di Ritenzione (RT)")  # 🔄 Ora il RT è sull'asse Y
-    plt.xlabel("Tempo di Deriva (DT)")      # 🔄 Ora il DT è sull'asse X
+    plt.ylabel("Tempo di Ritenzione (RT)")  
+    plt.xlabel("Tempo di Deriva (DT)")      
     plt.title("Mappa GC-IMS (RT vs DT)")
 
     return fig
