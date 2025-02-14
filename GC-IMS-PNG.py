@@ -1,59 +1,37 @@
-import cv2
-import numpy as np
-import pandas as pd
+import streamlit as st
 from PIL import Image
 import io
+import numpy as np
+import cv2
+from streamlit_cropper import st_cropper
 
-# Convertire in scala di grigi per analizzare l'intensità
-image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # Converti da RGB a Grayscale
+# Titolo dell'app
+st.title("Crop Manuale di Immagini GC-IMS")
 
-# Normalizzare l'immagine per evidenziare le variazioni cromatiche
-normalized_img = cv2.normalize(image_gray, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+# Caricamento immagine
+uploaded_file = st.file_uploader("Carica un'immagine (.png)", type=["png"])
 
-# Applicare la colormap "jet" per evidenziare le intensità
-colormap_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_JET)
+if uploaded_file:
+    # Apertura dell'immagine con PIL
+    image = Image.open(uploaded_file)
 
-# Applicare un threshold per segmentare le aree ad alta intensità
-_, thresh = cv2.threshold(normalized_img, 150, 255, cv2.THRESH_BINARY)
+    # Interfaccia di cropping manuale
+    st.subheader("Seleziona l'area da ritagliare")
+    cropped_image = st_cropper(image, box_color='red', aspect_ratio=None)
 
-# Trovare i contorni dei blob
-contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Mostra l'immagine ritagliata
+    if cropped_image:
+        st.subheader("Immagine Ritagliata")
+        st.image(cropped_image, use_container_width=True)
 
-# Lista per raccogliere i dati dei blob
-data_new = []
+        # Pulsante di download
+        buf = io.BytesIO()
+        cropped_image.save(buf, format="PNG")
+        byte_im = buf.getvalue()
 
-# Processare ogni blob trovato
-for i, contour in enumerate(contours):
-    x, y, w, h = cv2.boundingRect(contour)
-    cropped_blob = colormap_img[y:y+h, x:x+w]
-
-    # Trova il punto con massima intensità nel blob
-    _, max_val, _, max_loc = cv2.minMaxLoc(normalized_img[y:y+h, x:x+w])
-
-    # Convertire il blob in formato PNG in memoria
-    cropped_pil = Image.fromarray(cropped_blob)
-    buf = io.BytesIO()
-    cropped_pil.save(buf, format="PNG")
-    byte_im = buf.getvalue()
-
-    data_new.append([byte_im, x, x+w, y, y+h, x + max_loc[0], y + max_loc[1]])
-
-# Creare un DataFrame pandas con i dati dei blob
-df_final = pd.DataFrame(data_new, columns=["Immagine", "X Inizio", "X Fine", "Y Inizio", "Y Fine", "X Max Intensità", "Y Max Intensità"])
-
-# Mostrare i blob estratti direttamente con PIL
-blob_images = []
-for i, (blob_img, _, _, _, _, _, _) in enumerate(data_new):
-    img = Image.open(io.BytesIO(blob_img))  # Convertire il blob in immagine
-    blob_images.append(img)
-
-# Visualizzare le immagini estratte
-for i, img in enumerate(blob_images):
-    display(img)  # Mostra ogni immagine senza bisogno di Matplotlib
-
-# Rimuovere la colonna delle immagini dalla tabella
-df_final.drop(columns=["Immagine"], inplace=True)
-
-# Visualizzare la tabella con i dettagli dei blob
-import ace_tools as tools
-tools.display_dataframe_to_user(name="Feature Estratte dai Blob", dataframe=df_final)
+        st.download_button(
+            label="📥 Scarica Immagine Ritagliata",
+            data=byte_im,
+            file_name="ritaglio.png",
+            mime="image/png"
+        )
