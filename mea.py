@@ -6,7 +6,7 @@ def extract_gcims_data(file_bytes):
     """
     Estrae i metadati e i dati binari da un file .MEA relativo a GC-IMS.
     - I metadati contengono informazioni sperimentali.
-    - I dati binari rappresentano la matrice 2D (Tempo di Ritenzione x Tempo di Deriva).
+    - I dati binari rappresentano la matrice 2D reale, senza imporre forme arbitrarie.
     """
     file_text = file_bytes.decode("utf-8", errors="ignore")  
     lines = file_text.splitlines()
@@ -27,44 +27,43 @@ def extract_gcims_data(file_bytes):
         st.error("❌ Errore: impossibile identificare l'inizio dei dati binari.")
         return metadata, None
 
-    # 📌 **Estrazione dati binari con gestione flessibile**
+    # 📌 **Estrazione dati binari senza ipotesi di formato**
     raw_data = file_bytes[binary_start:].strip()
-
-    # Provo prima a leggere i dati come uint8
-    binary_data_uint8 = np.frombuffer(raw_data, dtype=np.uint8)
     
-    # Se il numero di valori è pari, provo a convertirli in int16 (dati a 16 bit)
-    if len(binary_data_uint8) % 2 == 0:
-        binary_data_int16 = binary_data_uint8.view(np.int16)
-    else:
-        st.warning("⚠️ I dati non hanno una lunghezza pari, impossibile convertirli in int16.")
-        binary_data_int16 = binary_data_uint8  # Resta in uint8 se non possiamo convertirli
+    # **Provo diversi formati numerici**
+    try:
+        binary_data = np.frombuffer(raw_data, dtype=np.float32)
+    except ValueError:
+        try:
+            binary_data = np.frombuffer(raw_data, dtype=np.int16)
+        except ValueError:
+            st.error("❌ Errore: impossibile leggere i dati binari in float32 o int16.")
+            return metadata, None
 
-    # 🔎 **Analisi della distribuzione dei valori**
-    data_min = np.min(binary_data_int16)
-    data_max = np.max(binary_data_int16)
-    data_mean = np.mean(binary_data_int16)
+    # 🔎 **Analisi della distribuzione dei dati**
+    data_min, data_max, data_mean = np.min(binary_data), np.max(binary_data), np.mean(binary_data)
+    st.write(f"📊 Dati GC-IMS: Min={data_min}, Max={data_max}, Media={data_mean}")
 
-    st.write(f"📊 Valori dei dati GC-IMS: Min={data_min}, Max={data_max}, Media={data_mean}")
+    # 📏 **Determinazione dinamica della forma della matrice**
+    possible_shapes = [(x, len(binary_data) // x) for x in range(10, 1000) if len(binary_data) % x == 0]
 
-    # 📏 **Ricostruzione dinamica della matrice**
-    num_rows = int(metadata.get("Numero_righe", 200))  # Prova a leggere dalle info, altrimenti default 200
-    num_cols = len(binary_data_int16) // num_rows  
+    if not possible_shapes:
+        st.error("❌ Impossibile trovare una forma valida per la matrice GC-IMS.")
+        return metadata, None
 
-    if num_rows * num_cols != len(binary_data_int16):
-        st.warning(f"⚠️ I dati non riempiono perfettamente una matrice di {num_rows}x{num_cols}. Alcuni dati potrebbero essere troncati.")
+    # Sceglie la forma più vicina a una matrice "rettangolare"
+    best_shape = min(possible_shapes, key=lambda s: abs(s[0] - s[1]))
 
-    matrix_data = binary_data_int16[:num_rows * num_cols].reshape((num_rows, num_cols))  
+    # Reshape senza forzare dimensioni arbitrarie
+    matrix_data = binary_data.reshape(best_shape)
 
     return metadata, matrix_data
 
 def generate_image_from_gcims(matrix_data):
     """
     Genera una heatmap dai dati GC-IMS con colormap Inferno.
-    Ruota il grafico di 90° per avere RT sull'asse Y.
+    Non impone una forma, ma usa la matrice reale.
     """
-    matrix_data = matrix_data.T  # ⚠️ **Ruota la matrice di 90°**
-
     fig, ax = plt.subplots(figsize=(10, 6))
     im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
     plt.colorbar(im, ax=ax, label="Intensità del Segnale")
