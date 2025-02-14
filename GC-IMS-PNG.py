@@ -1,44 +1,43 @@
 import streamlit as st
-import cv2
 import numpy as np
-import tempfile
 from PIL import Image
+from streamlit_drawable_canvas import st_canvas
 import io
 
 # Titolo dell'app
-st.title("Tool Interattivo per Ritaglio Immagine GC-IMS")
+st.title("Strumento Interattivo per il Ritaglio di Immagini GC-IMS")
 
 # Caricamento immagine
 uploaded_file = st.file_uploader("Carica un'immagine (.png)", type=["png"])
 
 if uploaded_file:
-    # Leggere l'immagine
-    image = Image.open(uploaded_file)
-    img_np = np.array(image)
+    # Apertura immagine con PIL e conversione in RGB
+    image = Image.open(uploaded_file).convert("RGB")  # Assicura compatibilità con Streamlit
 
     # Mostrare l'immagine caricata
     st.image(image, caption="Immagine Caricata", use_column_width=True)
 
-    # Selezione del ritaglio interattivo
-    st.subheader("Seleziona un'area da ritagliare")
-    from streamlit_drawable_canvas import st_canvas
+    # Converti l'immagine in NumPy array per compatibilità con st_canvas
+    img_np = np.array(image)
 
+    # Creazione della canvas interattiva per il ritaglio
+    st.subheader("Seleziona un'area da ritagliare con il mouse")
     canvas_result = st_canvas(
-        fill_color="rgba(255, 165, 0, 0.3)",  
+        fill_color="rgba(255, 165, 0, 0.3)",  # Colore semi-trasparente per la selezione
         stroke_width=3,
-        stroke_color="#FF0000",
-        background_image=image,
-        height=img_np.shape[0],
-        width=img_np.shape[1],
+        stroke_color="#FF0000",  # Rosso per il contorno
+        background_image=image,  # Immagine convertita in RGB
+        height=image.height,
+        width=image.width,
         drawing_mode="rect",
         key="canvas"
     )
 
-    # Quando l'utente ha disegnato un rettangolo
+    # Se l'utente ha disegnato un rettangolo, ritaglia l'area selezionata
     if canvas_result.json_data is not None:
         objects = canvas_result.json_data["objects"]
         if objects:
-            obj = objects[0]  # Considera il primo rettangolo disegnato
+            obj = objects[0]  # Prende il primo rettangolo disegnato
             left, top, width, height = map(int, [obj["left"], obj["top"], obj["width"], obj["height"]])
 
             # Ritagliare l'immagine
@@ -50,7 +49,7 @@ if uploaded_file:
             # Mostrare l'immagine ritagliata
             st.image(cropped_pil, caption="Immagine Ritagliata", use_column_width=True)
 
-            # Creare un pulsante di download
+            # Creare un pulsante di download per l'immagine ritagliata
             buf = io.BytesIO()
             cropped_pil.save(buf, format="PNG")
             byte_im = buf.getvalue()
