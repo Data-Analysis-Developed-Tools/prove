@@ -1,37 +1,54 @@
-import streamlit as st
-from PIL import Image
-import io
-import numpy as np
 import cv2
-from streamlit_cropper import st_cropper
+import numpy as np
+import pandas as pd
+from PIL import Image
+import os
+import streamlit as st
+import ace_tools as tools  # Per visualizzare la tabella su Streamlit
 
-# Titolo dell'app
-st.title("Crop Manuale di Immagini GC-IMS")
+# Caricare l'immagine
+image_path = "/mnt/data/image.png"
+image = cv2.imread(image_path)
 
-# Caricamento immagine
-uploaded_file = st.file_uploader("Carica un'immagine (.png)", type=["png"])
+# Convertire l'immagine in scala di grigi per analizzare l'intensità
+image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-if uploaded_file:
-    # Apertura dell'immagine con PIL
-    image = Image.open(uploaded_file)
+# Normalizzare l'immagine per evidenziare le variazioni cromatiche
+normalized_img = cv2.normalize(image_gray, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
 
-    # Interfaccia di cropping manuale
-    st.subheader("Seleziona l'area da ritagliare")
-    cropped_image = st_cropper(image, box_color='red', aspect_ratio=None)
+# Applicare la colormap "jet" per evidenziare le intensità
+colormap_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_JET)
 
-    # Mostra l'immagine ritagliata
-    if cropped_image:
-        st.subheader("Immagine Ritagliata")
-        st.image(cropped_image, use_container_width=True)
+# Applicare un threshold per segmentare le regioni di maggiore intensità
+_, thresh = cv2.threshold(normalized_img, 150, 255, cv2.THRESH_BINARY)
 
-        # Pulsante di download
-        buf = io.BytesIO()
-        cropped_image.save(buf, format="PNG")
-        byte_im = buf.getvalue()
+# Trovare i contorni delle macchie sulla mappa di calore
+contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        st.download_button(
-            label="📥 Scarica Immagine Ritagliata",
-            data=byte_im,
-            file_name="ritaglio.png",
-            mime="image/png"
-        )
+# Lista per la tabella dei risultati
+data = []
+
+# Cartella per le immagini ritagliate
+output_folder = "/mnt/data/cropped_blobs_colormap/"
+os.makedirs(output_folder, exist_ok=True)
+
+# Processare ogni contorno rilevato
+for i, contour in enumerate(contours):
+    x, y, w, h = cv2.boundingRect(contour)  # Ottieni il bounding box
+    cropped_blob = colormap_img[y:y+h, x:x+w]  # Ritaglia l'area del blob
+
+    # Trova il punto di massima intensità sulla scala cromatica
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(normalized_img[y:y+h, x:x+w])
+
+    # Salva l'immagine ritagliata
+    cropped_path = os.path.join(output_folder, f"blob_{i}.png")
+    Image.fromarray(cropped_blob).save(cropped_path)
+
+    # Aggiungere i dati alla tabella
+    data.append([cropped_path, x, x+w, y, y+h, x + max_loc[0], y + max_loc[1]])
+
+# Creare un DataFrame pandas con i risultati
+df_colormap = pd.DataFrame(data, columns=["Immagine", "X Inizio", "X Fine", "Y Inizio", "Y Fine", "X Max Intensità", "Y Max Intensità"])
+
+# Visualizzare la tabella aggiornata su Streamlit
+tools.display_dataframe_to_user(name="Blob Identificati con Scala Cromatica", dataframe=df_colormap)
