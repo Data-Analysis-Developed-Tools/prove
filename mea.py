@@ -26,6 +26,20 @@ def extract_metadata_and_data(file_bytes):
     # Estrazione dei dati binari effettivi
     binary_data = np.frombuffer(file_bytes[binary_start:], dtype=np.uint8)
 
+    # Debug: Mostra una parte dei dati binari
+st.write(f"📊 Dimensione dati binari: {len(binary_data)} bytes")
+st.write(f"🔍 Prime 100 posizioni binarie: {binary_data[:100]}")
+
+# Controllo se la matrice è quadrata e se la conversione è riuscita
+if len(binary_data) < 100:
+    st.error("❌ I dati binari sono troppo pochi per generare un'immagine.")
+else:
+    size = int(np.sqrt(len(binary_data)))
+    st.write(f"🖼️ La matrice avrà dimensione: {size}x{size}")
+
+binary_data = np.array(binary_data, dtype=np.uint8)  # Converte esplicitamente in uint8
+
+
     return metadata, binary_data
 
 def generate_image_from_data(binary_data):
