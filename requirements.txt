@@ -1,14 +1,5 @@
 streamlit
-opencv-python-headless
-streamlit-drawable-canvas
-numpy
 pillow
-git+https://github.com/Charisma-Mannheim/gc-ims-tools.git
-matplotlib
-pandas
-scipy
-openpyxl
-plotly
-kaleido
-xlsxwriter
-seaborn
+numpy
+opencv-python-headless
+streamlit-cropper
