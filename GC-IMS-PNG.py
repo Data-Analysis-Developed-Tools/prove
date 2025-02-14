@@ -2,52 +2,46 @@ import cv2
 import numpy as np
 import pandas as pd
 from PIL import Image
-import os
+import io
+import matplotlib.pyplot as plt
 import streamlit as st
 
-# Caricamento dell'immagine ritagliata dal precedente crop
+# Caricamento dell'immagine ritagliata
 st.subheader("Seleziona l'immagine ritagliata per estrarre le feature")
 uploaded_cropped_file = st.file_uploader("Carica l'immagine ritagliata (.png)", type=["png"])
 
 if uploaded_cropped_file:
-    # Caricare l'immagine senza salvarla su disco
+    # Caricare l'immagine direttamente in memoria
     image = Image.open(uploaded_cropped_file)
     image = np.array(image)  # Convertire PIL -> NumPy per OpenCV
 
-    # Verificare che l'immagine sia stata caricata correttamente
-    if image is None:
-        st.error(f"Errore: impossibile caricare l'immagine ritagliata.")
-        st.stop()
-
     # Convertire in scala di grigi per analizzare l'intensità
-    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # Da RGB a Grayscale
+    image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # Converti da RGB a Grayscale
 
     # Normalizzare l'immagine per evidenziare le variazioni cromatiche
     normalized_img = cv2.normalize(image_gray, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
 
-    # Applicare la colormap "jet"
+    # Applicare la colormap "jet" per evidenziare le intensità
     colormap_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_JET)
 
-    # Threshold per segmentare le aree ad alta intensità
+    # Applicare un threshold per segmentare le aree ad alta intensità
     _, thresh = cv2.threshold(normalized_img, 150, 255, cv2.THRESH_BINARY)
 
-    # Trovare i contorni
+    # Trovare i contorni dei blob
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Lista dei dati dei nuovi blob
+    # Lista per raccogliere i dati dei blob
     data_new = []
-    output_folder = "/mnt/data/cropped_blobs_from_crop/"
-    os.makedirs(output_folder, exist_ok=True)
 
-    # Processare ogni blob
+    # Processare ogni blob trovato
     for i, contour in enumerate(contours):
         x, y, w, h = cv2.boundingRect(contour)
         cropped_blob = colormap_img[y:y+h, x:x+w]
 
-        # Trova il punto di massima intensità
+        # Trova il punto con massima intensità nel blob
         _, max_val, _, max_loc = cv2.minMaxLoc(normalized_img[y:y+h, x:x+w])
 
-        # Salva il nuovo blob in memoria
+        # Convertire il blob in formato PNG in memoria
         cropped_pil = Image.fromarray(cropped_blob)
         buf = io.BytesIO()
         cropped_pil.save(buf, format="PNG")
@@ -55,9 +49,27 @@ if uploaded_cropped_file:
 
         data_new.append([byte_im, x, x+w, y, y+h, x + max_loc[0], y + max_loc[1]])
 
-    # Creare il nuovo DataFrame
+    # Creare un DataFrame pandas con i dati dei blob
     df_final = pd.DataFrame(data_new, columns=["Immagine", "X Inizio", "X Fine", "Y Inizio", "Y Fine", "X Max Intensità", "Y Max Intensità"])
 
-    # Visualizzare i dati su Streamlit
-    st.subheader("Feature Estratte dal Crop")
+    # Visualizzare i blob estratti con matplotlib
+    st.subheader("Blob Estratti dalla Regione Ritagliata")
+    fig, axes = plt.subplots(1, len(data_new), figsize=(15, 5))
+
+    # Se c'è un solo blob, `axes` non è una lista, quindi lo forziamo in una lista
+    if len(data_new) == 1:
+        axes = [axes]
+
+    for ax, (blob_img, _, _, _, _, _, _) in zip(axes, data_new):
+        img = Image.open(io.BytesIO(blob_img))  # Convertire il blob in immagine
+        ax.imshow(img)
+        ax.axis("off")
+
+    st.pyplot(fig)  # Mostrare i blob estratti
+
+    # Rimuovere le immagini dalla tabella per visualizzarla correttamente
+    df_final.drop(columns=["Immagine"], inplace=True)
+
+    # Visualizzare la tabella con i dettagli dei blob
+    st.subheader("Feature Estratte dai Blob Identificati")
     st.dataframe(df_final)
