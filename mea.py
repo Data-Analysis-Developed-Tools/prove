@@ -27,18 +27,19 @@ def extract_metadata_and_data(file_bytes):
     binary_data = np.frombuffer(file_bytes[binary_start:], dtype=np.uint8)
 
     # Debug: Mostra una parte dei dati binari
-st.write(f"📊 Dimensione dati binari: {len(binary_data)} bytes")
-st.write(f"🔍 Prime 100 posizioni binarie: {binary_data[:100]}")
+    st.write(f"📊 Dimensione dati binari: {len(binary_data)} bytes")
+    st.write(f"🔍 Prime 100 posizioni binarie: {binary_data[:100]}")
 
-# Controllo se la matrice è quadrata e se la conversione è riuscita
-if len(binary_data) < 100:
-    st.error("❌ I dati binari sono troppo pochi per generare un'immagine.")
-else:
-    size = int(np.sqrt(len(binary_data)))
-    st.write(f"🖼️ La matrice avrà dimensione: {size}x{size}")
+    # Controllo se la matrice è quadrata e se la conversione è riuscita
+    if len(binary_data) < 100:
+        st.error("❌ I dati binari sono troppo pochi per generare un'immagine.")
+        return metadata, None  # Evita errori se non ci sono dati sufficienti
+    else:
+        size = int(np.sqrt(len(binary_data)))
+        st.write(f"🖼️ La matrice avrà dimensione: {size}x{size}")
 
-binary_data = np.array(binary_data, dtype=np.uint8)  # Converte esplicitamente in uint8
-
+    # Converte i dati in formato uint8
+    binary_data = np.array(binary_data, dtype=np.uint8)
 
     return metadata, binary_data
 
@@ -46,6 +47,9 @@ def generate_image_from_data(binary_data):
     """
     Converte i dati binari in una bitmap e li visualizza con colormap Inferno.
     """
+    if binary_data is None:
+        return None  # Evita errori se non ci sono dati validi
+
     # Determina la dimensione della matrice per visualizzare l'immagine
     size = int(np.sqrt(len(binary_data)))  # Calcolo della dimensione della matrice quadrata
     matrix_data = binary_data[:size**2].reshape((size, size))  # Conversione in matrice 2D
@@ -77,8 +81,12 @@ if uploaded_file is not None:
         st.json(metadata)
 
     # 🎨 **Generazione dell'immagine**
-    st.write("🔍 Generando immagine dalla bitmap...")
-    image_fig = generate_image_from_data(binary_data)
+    if binary_data is not None:
+        st.write("🔍 Generando immagine dalla bitmap...")
+        image_fig = generate_image_from_data(binary_data)
 
-    # 🖼 **Mostra l'immagine generata**
-    st.pyplot(image_fig)
+        # 🖼 **Mostra l'immagine generata**
+        if image_fig is not None:
+            st.pyplot(image_fig)
+    else:
+        st.error("❌ Errore nella generazione dell'immagine. I dati binari non sono validi.")
