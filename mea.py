@@ -39,9 +39,8 @@ def extract_gcims_data(file_bytes):
     st.write(f"📊 Dimensione totale dei dati binari: {len(binary_data)} valori numerici")
 
     # 📏 **Ricostruzione dinamica della matrice**
-    # Il numero di righe è estratto dai metadati o ipotizzato
     num_rows = int(metadata.get("Numero_righe", 200))  # Modifica se conosci il numero esatto
-    num_cols = len(binary_data) // num_rows  # Calcola il numero di colonne dinamicamente
+    num_cols = len(binary_data) // num_rows  
 
     if num_rows * num_cols != len(binary_data):
         st.warning(f"⚠️ I dati non riempiono perfettamente una matrice di {num_rows}x{num_cols}. Alcuni dati potrebbero essere troncati.")
@@ -53,13 +52,16 @@ def extract_gcims_data(file_bytes):
 def generate_image_from_gcims(matrix_data):
     """
     Genera una heatmap dai dati GC-IMS con colormap Inferno.
+    Ruota il grafico di 90° per avere RT sull'asse Y.
     """
+    matrix_data = matrix_data.T  # ⚠️ **Ruota la matrice di 90°**
+
     fig, ax = plt.subplots(figsize=(10, 6))
     im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
     plt.colorbar(im, ax=ax, label="Intensità del Segnale")
-    plt.xlabel("Tempo di Ritenzione (RT)")
-    plt.ylabel("Tempo di Deriva (DT)")
-    plt.title("Mappa GC-IMS")
+    plt.ylabel("Tempo di Ritenzione (RT)")  # 🔄 Ora il RT è sull'asse Y
+    plt.xlabel("Tempo di Deriva (DT)")      # 🔄 Ora il DT è sull'asse X
+    plt.title("Mappa GC-IMS (RT vs DT)")
 
     return fig
 
