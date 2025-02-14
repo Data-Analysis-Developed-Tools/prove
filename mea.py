@@ -59,17 +59,20 @@ def extract_gcims_data(file_bytes):
 
     return metadata, matrix_data
 
-def generate_image_from_gcims(matrix_data):
+def generate_image_from_gcims(matrix_data, scale_factor):
     """
     Genera una heatmap dai dati GC-IMS con colormap Inferno.
-    Non impone una forma, ma usa la matrice reale.
+    Il contrasto può essere regolato con un fattore di scala.
     """
+    # Normalizzazione dei dati per migliorarne la visualizzazione
+    matrix_data_scaled = np.log1p(np.abs(matrix_data) * scale_factor)
+
     fig, ax = plt.subplots(figsize=(10, 6))
-    im = ax.imshow(matrix_data, cmap="inferno", aspect="auto", origin="lower")  
-    plt.colorbar(im, ax=ax, label="Intensità del Segnale")
+    im = ax.imshow(matrix_data_scaled, cmap="inferno", aspect="auto", origin="lower")  
+    plt.colorbar(im, ax=ax, label="Intensità del Segnale (Log-Scaled)")
     plt.ylabel("Tempo di Ritenzione (RT)")  
     plt.xlabel("Tempo di Deriva (DT)")      
-    plt.title("Mappa GC-IMS (RT vs DT)")
+    plt.title("Mappa GC-IMS (RT vs DT) - Regolabile")
 
     return fig
 
@@ -87,14 +90,20 @@ if uploaded_file is not None:
     file_bytes = uploaded_file.read()
     metadata, matrix_data = extract_gcims_data(file_bytes)
 
+    # 🎚 **Aggiunta di un cursore per regolare il contrasto**
+    scale_factor = st.slider(
+        "Regola la scala della colorazione (varianza)", 
+        min_value=0.01, max_value=1000.0, value=1.0, step=0.1, format="%.2f"
+    )
+
     # 📝 **Mostra i metadati**
     with st.expander("📄 Mostra Metadati"):
         st.json(metadata)
 
     # 🎨 **Generazione dell'immagine GC-IMS**
     if matrix_data is not None:
-        st.write("🔍 Generando immagine GC-IMS...")
-        image_fig = generate_image_from_gcims(matrix_data)
+        st.write("🔍 Generando immagine GC-IMS con contrasto regolabile...")
+        image_fig = generate_image_from_gcims(matrix_data, scale_factor)
 
         # 🖼 **Mostra l'immagine generata**
         st.pyplot(image_fig)
