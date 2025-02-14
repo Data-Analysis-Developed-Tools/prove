@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import io
-import matplotlib.pyplot as plt
 
 # Convertire in scala di grigi per analizzare l'intensità
 image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)  # Converti da RGB a Grayscale
@@ -42,21 +41,17 @@ for i, contour in enumerate(contours):
 # Creare un DataFrame pandas con i dati dei blob
 df_final = pd.DataFrame(data_new, columns=["Immagine", "X Inizio", "X Fine", "Y Inizio", "Y Fine", "X Max Intensità", "Y Max Intensità"])
 
-# Visualizzare i blob estratti con matplotlib
-fig, axes = plt.subplots(1, len(data_new), figsize=(15, 5))
-
-# Se c'è un solo blob, `axes` non è una lista, quindi lo forziamo in una lista
-if len(data_new) == 1:
-    axes = [axes]
-
-for ax, (blob_img, _, _, _, _, _, _) in zip(axes, data_new):
+# Mostrare i blob estratti direttamente con PIL
+blob_images = []
+for i, (blob_img, _, _, _, _, _, _) in enumerate(data_new):
     img = Image.open(io.BytesIO(blob_img))  # Convertire il blob in immagine
-    ax.imshow(img)
-    ax.axis("off")
+    blob_images.append(img)
 
-plt.show()  # Mostrare i blob estratti
+# Visualizzare le immagini estratte
+for i, img in enumerate(blob_images):
+    display(img)  # Mostra ogni immagine senza bisogno di Matplotlib
 
-# Rimuovere le immagini dalla tabella per visualizzarla correttamente
+# Rimuovere la colonna delle immagini dalla tabella
 df_final.drop(columns=["Immagine"], inplace=True)
 
 # Visualizzare la tabella con i dettagli dei blob
