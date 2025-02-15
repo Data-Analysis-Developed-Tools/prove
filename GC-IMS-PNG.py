@@ -40,6 +40,13 @@ if uploaded_file:
         st.subheader("Immagine Segmentata")
         st.image(thresh, use_column_width=True, caption="Macchie Segmentate")
         
+        # Funzione per verificare se un blob ha un unico massimo di intensità
+        def is_monotonic_gradient(region):
+            min_val, max_val, _, max_loc = cv2.minMaxLoc(region)
+            if (region == max_val).sum() == 1:
+                return True
+            return False
+        
         # Processare ogni blob trovato
         blob_data = []
         for i, contour in enumerate(contours):
@@ -50,15 +57,29 @@ if uploaded_file:
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(img_gray[y:y+h, x:x+w])
             x_max, y_max = x + max_loc[0], y + max_loc[1]
             
-            # Convertire in formato scaricabile
-            blob_pil = Image.fromarray(cropped_blob)
-            buf = io.BytesIO()
-            blob_pil.save(buf, format="PNG")
-            byte_im = buf.getvalue()
-            
-            # Salvare i dettagli del blob
-            blob_data.append((byte_im, x, x+w, y, y+h, x_max, y_max))
-            
+            # Verifica se il blob ha un unico massimo o un gradiente monotono
+            if is_monotonic_gradient(img_gray[y:y+h, x:x+w]):
+                # Convertire in formato scaricabile
+                blob_pil = Image.fromarray(cropped_blob)
+                buf = io.BytesIO()
+                blob_pil.save(buf, format="PNG")
+                byte_im = buf.getvalue()
+                
+                # Salvare i dettagli del blob
+                blob_data.append((byte_im, x, x+w, y, y+h, x_max, y_max))
+            else:
+                # Se il gradiente non è monotono, suddividere l'immagine in due parti
+                half_h = h // 2
+                sub_regions = [(y, y+half_h), (y+half_h, y+h)]
+                for sub_y_start, sub_y_end in sub_regions:
+                    cropped_sub_blob = img_np[sub_y_start:sub_y_end, x:x+w]
+                    blob_pil = Image.fromarray(cropped_sub_blob)
+                    buf = io.BytesIO()
+                    blob_pil.save(buf, format="PNG")
+                    byte_im = buf.getvalue()
+                    
+                    blob_data.append((byte_im, x, x+w, sub_y_start, sub_y_end, x_max, y_max))
+        
         # Mostrare i blob ritagliati
         st.subheader("Blob Identificati")
         for i, (blob_img, x_start, x_end, y_start, y_end, x_max, y_max) in enumerate(blob_data):
