@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw
 import io
 import numpy as np
 import cv2
@@ -56,31 +56,29 @@ if uploaded_file:
             # Trova il punto con massima intensità nel blob
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(img_gray[y:y+h, x:x+w])
             x_max, y_max = x + max_loc[0], y + max_loc[1]
+
+            # Verifica se il massimo di intensità è nel centro del blob (± un quartile)
+            x_center, y_center = x + w // 2, y + h // 2
+            x_q1, x_q3 = x_center - w // 4, x_center + w // 4
+            y_q1, y_q3 = y_center - h // 4, y_center + h // 4
             
-            # Verifica se il blob ha un unico massimo o un gradiente monotono
-            if is_monotonic_gradient(img_gray[y:y+h, x:x+w]):
-                # Convertire in formato scaricabile
+            if x_q1 <= x_max <= x_q3 and y_q1 <= y_max <= y_q3:
+                # Disegnare una crocetta sul punto di massima intensità
                 blob_pil = Image.fromarray(cropped_blob)
+                draw = ImageDraw.Draw(blob_pil)
+                cross_size = 5
+                draw.line([(x_max - cross_size, y_max), (x_max + cross_size, y_max)], fill="red", width=2)
+                draw.line([(x_max, y_max - cross_size), (x_max, y_max + cross_size)], fill="red", width=2)
+
+                # Convertire in formato scaricabile
                 buf = io.BytesIO()
                 blob_pil.save(buf, format="PNG")
                 byte_im = buf.getvalue()
                 
                 # Salvare i dettagli del blob
                 blob_data.append((byte_im, x, x+w, y, y+h, x_max, y_max))
-            else:
-                # Se il gradiente non è monotono, suddividere l'immagine in due parti
-                half_h = h // 2
-                sub_regions = [(y, y+half_h), (y+half_h, y+h)]
-                for sub_y_start, sub_y_end in sub_regions:
-                    cropped_sub_blob = img_np[sub_y_start:sub_y_end, x:x+w]
-                    blob_pil = Image.fromarray(cropped_sub_blob)
-                    buf = io.BytesIO()
-                    blob_pil.save(buf, format="PNG")
-                    byte_im = buf.getvalue()
-                    
-                    blob_data.append((byte_im, x, x+w, sub_y_start, sub_y_end, x_max, y_max))
         
-        # Mostrare i blob ritagliati
+        # Mostrare i blob ritagliati con la crocetta
         st.subheader("Blob Identificati")
         for i, (blob_img, x_start, x_end, y_start, y_end, x_max, y_max) in enumerate(blob_data):
             st.image(blob_img, caption=f"Blob {i+1}: X[{x_start}:{x_end}], Y[{y_start}:{y_end}], Max Intensità ({x_max}, {y_max})", use_container_width=True)
