@@ -1,0 +1,107 @@
+# importa un file excel con le tesi per colonne e le diverse prove sulle righe, senza intestazioni di riga
+# effettua test Levene, ANOVA, Tukey HSD, Bonferroni, Games-Howell
+# nato per google copilot
+
+import pandas as pd
+import scipy.stats as stats
+import statsmodels.api as sm
+import statsmodels.stats.multicomp as mc
+import pingouin as pg
+import ipywidgets as widgets
+from IPython.display import display
+from google.colab import files
+from tabulate import tabulate
+
+# 📌 Widget per il caricamento del file
+upload_button = widgets.FileUpload(accept=".xlsx", multiple=False)
+display(upload_button)
+
+# 📌 Funzione per gestire il caricamento e analizzare i dati
+def handle_upload(change):
+    uploaded_file = next(iter(upload_button.value.values()))
+    file_name = uploaded_file["metadata"]["name"]
+
+    # 📌 Salva il file su disco
+    with open(file_name, "wb") as f:
+        f.write(uploaded_file["content"])
+
+    # 📌 Legge il file Excel in un DataFrame
+    df = pd.read_excel(file_name)
+    df = df.dropna()  # Rimuove eventuali valori mancanti
+
+    # 📌 Trasforma i dati in formato lungo per l'ANOVA e i test post-hoc
+    df_melted = df.melt(var_name="Tesi", value_name="Valore")
+
+    # 📌 Test di Levene per verificare l'uguaglianza delle varianze
+    stat_levene, p_levene = stats.levene(*[df[col].dropna() for col in df.columns])
+
+    # 📌 Test ANOVA ad una via
+    anova = pg.anova(data=df_melted, dv="Valore", between="Tesi", detailed=True)
+
+    # 📌 Test post-hoc di Tukey HSD
+    tukey = mc.pairwise_tukeyhsd(df_melted["Valore"], df_melted["Tesi"])
+    tukey_table = pd.DataFrame(data=tukey.summary().data[1:], columns=tukey.summary().data[0])
+
+    # 📌 Test post-hoc di Bonferroni
+    bonferroni = pg.pairwise_ttests(data=df_melted, dv="Valore", between="Tesi", padjust="bonferroni")
+
+    # 📌 Test post-hoc di Games-Howell
+    games_howell = pg.pairwise_gameshowell(data=df_melted, dv="Valore", between="Tesi")
+
+    # 📌 Stampa i nomi delle colonne per debug
+    print("\n📋 Nomi colonne Bonferroni:", bonferroni.columns.tolist())
+
+    # 📌 Identifica i nomi corretti delle colonne per le coppie di tesi
+    tesi1_col = [col for col in bonferroni.columns if "A" in col or "group1" in col][0]
+    tesi2_col = [col for col in bonferroni.columns if "B" in col or "group2" in col][0]
+    pval_col = [col for col in bonferroni.columns if "p-corr" in col or "pval" in col][0]
+
+    # 📌 Formattazione e interpretazione dei risultati
+    print("\n🔎 Test di Levene (uguaglianza delle varianze):")
+    levene_table = [["Statistiche", "p-value"], [f"{stat_levene:.4f}", f"{p_levene:.4f}"]]
+    print(tabulate(levene_table, headers="firstrow", tablefmt="grid"))
+    if p_levene < 0.05:
+        print("⚠️ Le varianze tra le tesi sono significativamente diverse (eteroschedasticità). Usa Games-Howell.")
+    else:
+        print("✅ Le varianze tra le tesi NON sono significativamente diverse (omoschedasticità). Usa Tukey.")
+
+    print("\n📊 Risultati ANOVA:")
+    print(tabulate(anova, headers="keys", tablefmt="grid"))
+    if anova["p-unc"].values[0] < 0.05:
+        print("🔬 L'ANOVA indica che almeno una tesi è significativamente diversa dalle altre.")
+    else:
+        print("❌ L'ANOVA non rileva differenze significative tra le tesi.")
+
+    print("\n🔬 Test post-hoc di Tukey HSD:")
+    print(tabulate(tukey_table, headers="keys", tablefmt="grid"))
+    tukey_significant = tukey_table[tukey_table["p-adj"] < 0.05]
+    if not tukey_significant.empty:
+        print("✅ Il test di Tukey HSD indica differenze significative tra le seguenti coppie di tesi:")
+        for _, row in tukey_significant.iterrows():
+            print(f"  - {row['group1']} vs {row['group2']} (p = {row['p-adj']:.4f})")
+    else:
+        print("❌ Il test di Tukey non rileva differenze significative tra le coppie di tesi.")
+
+    print("\n📈 Test post-hoc di Bonferroni:")
+    print(tabulate(bonferroni, headers="keys", tablefmt="grid"))
+
+    bonferroni_significant = bonferroni[bonferroni[pval_col] < 0.05]
+    if not bonferroni_significant.empty:
+        print("✅ Il test di Bonferroni rileva differenze significative tra le seguenti coppie di tesi:")
+        for _, row in bonferroni_significant.iterrows():
+            print(f"  - {row[tesi1_col]} vs {row[tesi2_col]} (p = {row[pval_col]:.4f})")
+    else:
+        print("❌ Il test di Bonferroni non rileva differenze significative tra le coppie di tesi.")
+
+    print("\n📉 Test post-hoc di Games-Howell:")
+    print(tabulate(games_howell, headers="keys", tablefmt="grid"))
+    games_significant = games_howell[games_howell["pval"] < 0.05]
+    if not games_significant.empty:
+        print("✅ Il test di Games-Howell rileva differenze significative tra le seguenti coppie di tesi:")
+        for _, row in games_significant.iterrows():
+            print(f"  - {row['A']} vs {row['B']} (p = {row['pval']:.4f})")
+    else:
+        print("❌ Il test di Games-Howell non rileva differenze significative tra le coppie di tesi.")
+
+# 📌 Collega la funzione al widget di upload
+upload_button.observe(handle_upload, names="value")
