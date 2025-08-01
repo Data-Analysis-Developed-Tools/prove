@@ -1,6 +1,9 @@
 streamlit
 pillow
 numpy
+pandas
+scipy
+matplotlib
+plotly
 opencv-python-headless
 streamlit-cropper
-plotly
